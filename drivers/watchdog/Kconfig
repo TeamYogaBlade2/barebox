@@ -204,4 +204,12 @@ config HGS_EFI_WATCHDOG
 
 	  If unsure, say N.
 
+config MEDIATEK_WATCHDOG
+	tristate "Mediatek SoCs watchdog support"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+	default ARCH_MEDIATEK
+	help
+	  Say Y here to include support for the watchdog timer
+	  in Mediatek SoCs.
+
 endif
