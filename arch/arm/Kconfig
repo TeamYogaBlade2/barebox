@@ -165,6 +165,17 @@ config ARCH_BCM283X
 	select ARM_AMBA
 	select HAS_DEBUG_LL
 
+config ARCH_MEDIATEK
+	bool "Mediatek SoCs"
+	depends on ARCH_MULTIARCH
+	select CLKDEV_LOOKUP
+	select COMMON_CLK
+	select COMMON_CLK_OF_PROVIDER
+	select GPIOLIB
+	select OFDEVICE
+	select OFTREE
+	select PINCTRL
+
 config ARCH_IMX
 	bool "Freescale iMX-based"
 	depends on ARCH_MULTIARCH
@@ -297,6 +308,7 @@ source "arch/arm/mach-bcm283x/Kconfig"
 source "arch/arm/mach-clps711x/Kconfig"
 source "arch/arm/mach-imx/Kconfig"
 source "arch/arm/mach-layerscape/Kconfig"
+source "arch/arm/mach-mediatek/Kconfig"
 source "arch/arm/mach-mxs/Kconfig"
 source "arch/arm/mach-mvebu/Kconfig"
 source "arch/arm/mach-k3/Kconfig"
