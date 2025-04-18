@@ -259,6 +259,14 @@ static void rpi_init_port(struct console_device *cdev)
 	ns16550_serial_init_port(cdev);
 }
 
+static void mediatek_init_port(struct console_device *cdev)
+{
+	struct ns16550_priv *priv = to_ns16550_priv(cdev);
+
+	priv->plat.shift = 2;
+	ns16550_serial_init_port(cdev);
+}
+
 /*********** Exposed Functions **********************************/
 
 /**
@@ -417,6 +425,12 @@ static __maybe_unused struct ns16550_drvdata jz_drvdata = {
 static __maybe_unused struct ns16550_drvdata rpi_drvdata = {
 	.init_port = rpi_init_port,
 	.linux_earlycon_name = "bcm2835aux",
+};
+
+static __maybe_unused struct ns16550_drvdata mediatek_drvdata = {
+	.init_port = mediatek_init_port,
+	.linux_console_name = "ttyS",
+	.linux_earlycon_name = "mtk8250",
 };
 
 /**
@@ -618,6 +632,12 @@ static struct of_device_id ns16550_serial_dt_ids[] = {
 	{
 		.compatible = "brcm,bcm2835-aux-uart",
 		.data = &rpi_drvdata,
+	},
+#endif
+#if IS_ENABLED(CONFIG_ARCH_MEDIATEK)
+	{
+		.compatible = "mediatek,mt6577-uart",
+		.data = &mediatek_drvdata,
 	},
 #endif
 	{
