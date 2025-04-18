@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# MediaTek Clock Drivers
+#
+menu "Clock driver for MediaTek SoC"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+
+config COMMON_CLK_MEDIATEK
+	tristate
+	select RESET_CONTROLLER
+	select MFD_SYSCON
+	help
+	  MediaTek SoCs' clock support.
+
+config COMMON_CLK_MEDIATEK_FHCTL
+	bool "clock driver for MediaTek FHCTL hardware control"
+	select COMMON_CLK_MEDIATEK
+	help
+	  This driver supports MediaTek frequency hopping and
+	  spread spectrum clocking features.
+
+config COMMON_CLK_MT8186
+	tristate "Clock driver for MediaTek MT8186"
+	depends on ARM64 || COMPILE_TEST
+	select COMMON_CLK_MEDIATEK
+	select COMMON_CLK_MEDIATEK_FHCTL
+	default ARCH_MEDIATEK
+	help
+	  This driver supports MediaTek MT8186 clocks.
+
+endmenu

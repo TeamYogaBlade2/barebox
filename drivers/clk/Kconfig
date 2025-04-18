@@ -83,6 +83,7 @@ config COMMON_CLK_GPIO
 	depends on COMMON_CLK_OF_PROVIDER
 
 source "drivers/clk/sifive/Kconfig"
+source "drivers/clk/mediatek/Kconfig"
 
 config COMMON_CLK_LAN966X
 	bool "Generic Clock Controller driver for LAN966X SoC"
