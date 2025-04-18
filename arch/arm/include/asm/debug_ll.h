@@ -7,6 +7,8 @@
 #include <mach/imx/debug_ll.h>
 #elif defined CONFIG_DEBUG_ROCKCHIP_UART
 #include <mach/rockchip/debug_ll.h>
+#elif defined CONFIG_DEBUG_MEDIATEK_UART
+#include <mach/mediatek/debug_ll.h>
 #elif defined CONFIG_DEBUG_OMAP_UART
 #include <mach/omap/debug_ll.h>
 #elif defined CONFIG_DEBUG_ZYNQMP_UART
