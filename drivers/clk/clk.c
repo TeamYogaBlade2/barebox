@@ -230,7 +230,7 @@ static int clk_hw_determine_round(struct clk_hw *hw,
 	return 0;
 }
 
-long clk_round_rate(struct clk *clk, unsigned long rate)
+unsigned long clk_round_rate(struct clk *clk, unsigned long rate)
 {
 	struct clk_rate_request req;
 	struct clk_hw *hw;
@@ -257,7 +257,7 @@ long clk_round_rate(struct clk *clk, unsigned long rate)
 	return clk_get_rate(clk);
 }
 
-long clk_hw_round_rate(struct clk_hw *hw, unsigned long rate)
+unsigned long clk_hw_round_rate(struct clk_hw *hw, unsigned long rate)
 {
 	return clk_round_rate(&hw->clk, rate);
 }

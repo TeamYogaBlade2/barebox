@@ -112,8 +112,8 @@ unsigned long clk_hw_get_rate(struct clk_hw *hw);
  *
  * Returns rounded clock rate in Hz, or negative errno.
  */
-long clk_round_rate(struct clk *clk, unsigned long rate);
-long clk_hw_round_rate(struct clk_hw *hw, unsigned long rate);
+unsigned long clk_round_rate(struct clk *clk, unsigned long rate);
+unsigned long clk_hw_round_rate(struct clk_hw *hw, unsigned long rate);
 /**
  * clk_set_rate - set the clock rate for a clock source
  * @clk: clock source
