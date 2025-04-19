@@ -79,6 +79,13 @@ void clk_hw_init_rate_request(struct clk_hw *hw,
 			      struct clk_rate_request *req,
 			      unsigned long rate);
 
+int clk_hw_determine_rate_no_reparent(struct clk_hw *hw,
+				      struct clk_rate_request *req);
+
+int clk_mux_determine_rate_flags(struct clk_hw *hw,
+				 struct clk_rate_request *req,
+				 unsigned long flags);
+
 #define CLK_HW_INIT(_name, _parent, _ops, _flags)		\
 	(&(struct clk_init_data) {				\
 		.flags		= _flags,			\

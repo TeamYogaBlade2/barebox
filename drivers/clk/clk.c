@@ -143,6 +143,39 @@ unsigned long clk_hw_get_rate(struct clk_hw *hw)
 	return clk_get_rate(clk_hw_to_clk(hw));
 }
 
+static bool clk_core_can_round(struct clk * const clk)
+{
+	return clk->ops->determine_rate || clk->ops->round_rate;
+}
+
+static bool mux_is_better_rate(unsigned long rate, unsigned long now,
+			   unsigned long best, unsigned long flags)
+{
+	return now <= rate && now > best;
+}
+
+static bool clk_hw_has_parent(struct clk_hw *hw, const struct clk_hw *parent)
+{
+	struct clk_hw *tmp;
+	unsigned int i;
+
+	/* Optimize for the case where the parent is already the parent. */
+
+	if (clk_hw_get_parent(hw) == parent)
+		return true;
+
+	for (i = 0; i < hw->clk.num_parents; i++) {
+		tmp = clk_hw_get_parent_by_index(hw, i);
+		if (!tmp)
+			continue;
+
+		if (tmp == parent)
+			return true;
+	}
+
+	return false;
+}
+
 static void clk_hw_init_rate_req(struct clk_hw * const hw,
 				 struct clk_rate_request *req,
 				 unsigned long rate)
@@ -261,6 +294,120 @@ unsigned long clk_hw_round_rate(struct clk_hw *hw, unsigned long rate)
 {
 	return clk_round_rate(&hw->clk, rate);
 }
+
+static void
+clk_hw_forward_rate_req(struct clk_hw *hw,
+			const struct clk_rate_request *old_req,
+			struct clk_hw *parent,
+			struct clk_rate_request *req,
+			unsigned long parent_rate)
+{
+	if (WARN_ON(!clk_hw_has_parent(hw, parent)))
+		return;
+
+	clk_hw_init_rate_req(parent, req, parent_rate);
+
+	if (req->min_rate < old_req->min_rate)
+		req->min_rate = old_req->min_rate;
+
+	if (req->max_rate > old_req->max_rate)
+		req->max_rate = old_req->max_rate;
+}
+
+/*
+ * clk_hw_determine_rate_no_reparent - clk_ops::determine_rate implementation for a clk that doesn't reparent
+ * @hw: mux type clk to determine rate on
+ * @req: rate request, also used to return preferred frequency
+ *
+ * Helper for finding best parent rate to provide a given frequency.
+ * This can be used directly as a determine_rate callback (e.g. for a
+ * mux), or from a more complex clock that may combine a mux with other
+ * operations.
+ *
+ * Returns: 0 on success, -EERROR value on error
+ */
+int clk_hw_determine_rate_no_reparent(struct clk_hw *hw,
+				      struct clk_rate_request *req)
+{
+	struct clk_hw *parent = clk_hw_get_parent(hw);
+	unsigned long best;
+
+	if (hw->clk.flags & CLK_SET_RATE_PARENT) {
+		struct clk_rate_request parent_req;
+
+		if (!parent) {
+			req->rate = 0;
+			return 0;
+		}
+
+		clk_hw_forward_rate_req(hw, req, parent, &parent_req,
+					req->rate);
+
+		best = clk_hw_round_rate(parent, parent_req.rate);
+		if (!best)
+			return -EINVAL;
+	} else if (parent) {
+		best = clk_hw_get_rate(parent);
+	} else {
+		best = clk_hw_get_rate(hw);
+	}
+
+	req->best_parent_rate = best;
+	req->rate = best;
+
+	return 0;
+}
+
+int clk_mux_determine_rate_flags(struct clk_hw *hw,
+				 struct clk_rate_request *req,
+				 unsigned long flags)
+{
+	struct clk_hw *parent, *best_parent = NULL;
+	int i, num_parents;
+	unsigned long best = 0;
+
+	/* if NO_REPARENT flag set, pass through to current parent */
+	if (hw->clk.flags & CLK_SET_RATE_NO_REPARENT)
+		return clk_hw_determine_rate_no_reparent(hw, req);
+
+	/* find the parent that can provide the fastest rate <= rate */
+	num_parents = hw->clk.num_parents;
+	for (i = 0; i < num_parents; i++) {
+		unsigned long parent_rate;
+
+		parent = clk_hw_get_parent_by_index(hw, i);
+		if (!parent)
+			continue;
+
+		if (hw->clk.flags & CLK_SET_RATE_PARENT) {
+			struct clk_rate_request parent_req;
+
+			clk_hw_forward_rate_req(hw, req, parent, &parent_req, req->rate);
+
+			parent_rate = clk_hw_round_rate(parent, parent_req.rate);
+			if (!parent_rate)
+				continue;
+		} else {
+			parent_rate = clk_hw_get_rate(parent);
+		}
+
+		if (mux_is_better_rate(req->rate, parent_rate,
+				       best, flags)) {
+			best_parent = parent;
+			best = parent_rate;
+		}
+	}
+
+	if (!best_parent)
+		return -EINVAL;
+
+	req->best_parent_hw = best_parent;
+	req->best_parent_rate = best;
+	req->rate = best;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(clk_mux_determine_rate_flags);
 
 int clk_set_rate(struct clk *clk, unsigned long rate)
 {
