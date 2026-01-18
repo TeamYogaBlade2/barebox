@@ -282,6 +282,16 @@ config MCI_CADENCE_SDHCI
 	  This selects the Cadence SD/SDIO/eMMC driver.
 	  If you have a controller with this interface, say Y or M here.
 
+config MCI_MTK
+	tristate "MediaTek SD/MMC Card Interface support"
+	depends on HAS_DMA
+	select REGULATOR
+	help
+	  This selects the MediaTek(R) Secure digital and Multimedia card Interface.
+	  If you have a machine with a integrated SD/MMC card reader, say Y or M here.
+	  This is needed if support for any SD/SDIO/MMC devices is required.
+	  If unsure, say N.
+
 endif
 
 config MCI_IMX_ESDHC_PBL
