@@ -1,0 +1,2 @@
+#include <arm64/mediatek/mt8195-cherry-tomato-r3.dts>
+#include "mt81xx-common.dtsi"

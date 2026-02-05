@@ -1,0 +1,2 @@
+#include <arm64/mediatek/mt8183-kukui-jacuzzi-pico.dts>
+#include "mt81xx-common.dtsi"

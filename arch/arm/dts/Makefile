@@ -265,6 +265,69 @@ lwl-$(CONFIG_MACH_VARISCITE_DT8MCUSTOMBOARD_IMX8MP) += imx8mp-var-dart-dt8mcusto
 lwl-$(CONFIG_MACH_TQMA93XX) += imx93-tqma9352-mba93xxca.dtb.o \
 			       imx93-tqma9352-mba93xxla.dtb.o
 
+lwl-$(CONFIG_ARCH_MEDIATEK_V8) += \
+	mt8183-kukui-jacuzzi-burnet.dtb.o \
+	mt8183-kukui-jacuzzi-cozmo.dtb.o \
+	mt8183-kukui-jacuzzi-damu.dtb.o \
+	mt8183-kukui-jacuzzi-fennel-sku1.dtb.o \
+	mt8183-kukui-jacuzzi-fennel-sku6.dtb.o \
+	mt8183-kukui-jacuzzi-fennel-sku7.dtb.o \
+	mt8183-kukui-jacuzzi-fennel14-sku2.dtb.o \
+	mt8183-kukui-jacuzzi-fennel14.dtb.o \
+	mt8183-kukui-jacuzzi-juniper-sku16.dtb.o \
+	mt8183-kukui-jacuzzi-kappa.dtb.o \
+	mt8183-kukui-jacuzzi-kenzo.dtb.o \
+	mt8183-kukui-jacuzzi-makomo-sku0.dtb.o \
+	mt8183-kukui-jacuzzi-makomo-sku1.dtb.o \
+	mt8183-kukui-jacuzzi-pico.dtb.o \
+	mt8183-kukui-jacuzzi-pico6.dtb.o \
+	mt8183-kukui-jacuzzi-willow-sku0.dtb.o \
+	mt8183-kukui-jacuzzi-willow-sku1.dtb.o \
+	mt8183-kukui-kakadu-sku22.dtb.o \
+	mt8183-kukui-kakadu.dtb.o \
+	mt8183-kukui-katsu-sku32.dtb.o \
+	mt8183-kukui-katsu-sku38.dtb.o \
+	mt8183-kukui-kodama-sku16.dtb.o \
+	mt8183-kukui-kodama-sku272.dtb.o \
+	mt8183-kukui-kodama-sku288.dtb.o \
+	mt8183-kukui-kodama-sku32.dtb.o \
+	mt8183-kukui-krane-sku0.dtb.o \
+	mt8183-kukui-krane-sku176.dtb.o \
+	mt8183-pumpkin.dtb.o \
+	mt8186-corsola-chinchou-sku0.dtb.o \
+	mt8186-corsola-chinchou-sku1.dtb.o \
+	mt8186-corsola-chinchou-sku16.dtb.o \
+	mt8186-corsola-magneton-sku393216.dtb.o \
+	mt8186-corsola-magneton-sku393217.dtb.o \
+	mt8186-corsola-magneton-sku393218.dtb.o \
+	mt8186-corsola-ponyta-sku0.dtb.o \
+	mt8186-corsola-ponyta-sku1.dtb.o \
+	mt8186-corsola-rusty-sku196608.dtb.o \
+	mt8186-corsola-squirtle.dtb.o \
+	mt8186-corsola-starmie-sku0.dtb.o \
+	mt8186-corsola-starmie-sku1.dtb.o \
+	mt8186-corsola-steelix-sku131072.dtb.o \
+	mt8186-corsola-steelix-sku131073.dtb.o \
+	mt8186-corsola-tentacool-sku327681.dtb.o \
+	mt8186-corsola-tentacool-sku327683.dtb.o \
+	mt8186-corsola-tentacruel-sku262144.dtb.o \
+	mt8186-corsola-tentacruel-sku262148.dtb.o \
+	mt8186-corsola-voltorb.dtb.o \
+	mt8188-geralt-ciri-sku0.dtb.o \
+	mt8188-geralt-ciri-sku1.dtb.o \
+	mt8188-geralt-ciri-sku2.dtb.o \
+	mt8188-geralt-ciri-sku3.dtb.o \
+	mt8188-geralt-ciri-sku4.dtb.o \
+	mt8188-geralt-ciri-sku5.dtb.o \
+	mt8188-geralt-ciri-sku6.dtb.o \
+	mt8188-geralt-ciri-sku7.dtb.o \
+	mt8192-asurada-hayato-r1.dtb.o \
+	mt8192-asurada-spherion-r0.dtb.o \
+	mt8195-cherry-dojo-r1.dtb.o \
+	mt8195-cherry-tomato-r1.dtb.o \
+	mt8195-cherry-tomato-r2.dtb.o \
+	mt8195-cherry-tomato-r3.dtb.o
+
 obj-$(CONFIG_MACH_WOLFVISION_PF5) += rk3568-wolfvision-pf5-io-expander.dtbo.o \
 				     rk3568-wolfvision-pf5-display-vz.dtbo.o
 clean-files := *.dtb *.dtb.S .*.dtc .*.pre .*.dts *.dtb.z
