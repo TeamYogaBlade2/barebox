@@ -50,6 +50,13 @@ comment "OFDEVICE is not enabled."
 comment "Without device tree support PINCTRL won't do anything"
 endif
 
+config PINCTRL_GENERIC
+	bool
+	help
+	  Generic apply-time parser for the common pinctrl and pinconf
+	  device tree bindings. Drivers opt into this helper while keeping
+	  barebox's lazy state parsing model.
+
 config PINCTRL_AT91PIO4
 	bool "AT91 PIO4 pinctrl driver"
 	depends on ARCH_AT91
