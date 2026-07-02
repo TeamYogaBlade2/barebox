@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: GPL-2.0-only
+menu "Pin controllers for MediaTek SoCs"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+
+config PINCTRL_MEDIATEK
+	bool
+	help
+		MediaTek pin controller support
+
+config PINCTRL_MTK_PARIS
+	bool
+	select PINCTRL_MEDIATEK
+	select PINCTRL_GENERIC
+	# select HAVE_GPIO_PINCONF
+
+endmenu

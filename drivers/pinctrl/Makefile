@@ -17,5 +17,6 @@ obj-$(CONFIG_PINCTRL_VF610) += pinctrl-vf610.o
 obj-$(CONFIG_PINCTRL_STM32) += pinctrl-stm32.o
 obj-$(CONFIG_PINCTRL_OCELOT) += pinctrl-ocelot.o
 
+obj-$(CONFIG_ARCH_MEDIATEK) += mediatek/
 obj-$(CONFIG_ARCH_MVEBU) += mvebu/
 obj-$(CONFIG_ARCH_SUNXI) += sunxi/
