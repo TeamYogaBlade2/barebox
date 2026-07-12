@@ -42,3 +42,4 @@ obj-$(CONFIG_DRIVER_VIDEO_BOCHS) += bochs/
 obj-$(CONFIG_DRIVER_VIDEO_ROCKCHIP) += rockchip/
 obj-$(CONFIG_DRIVER_VIDEO_FSL_LDB) += fsl-ldb.o
 obj-$(CONFIG_DRIVER_VIDEO_COREBOOT_FB) += coreboot-fb.o
+obj-$(CONFIG_DRIVER_VIDEO_MTK_STUB) += mtk-disp-stub.o
