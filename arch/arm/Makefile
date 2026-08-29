@@ -128,6 +128,7 @@ machine-$(CONFIG_ARCH_ZYNQMP)		+= zynqmp
 LDFLAGS_barebox += -pie
 LDFLAGS_barebox += -z notext
 LDFLAGS_pbl += -pie
+LDFLAGS_pbl += -z notext
 
 # early code often runs at addresses we are not linked at
 KBUILD_CFLAGS_KERNEL += -fPIE
