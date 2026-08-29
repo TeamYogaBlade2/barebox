@@ -2,6 +2,7 @@
 
 #include <linux/linkage.h>
 #include <asm-generic/memory_layout.h>
+#include <asm/assembler.h>
 
 /*
  *************************************************************************
@@ -46,7 +47,7 @@
 	.macro	bad_save_user_regs
 	sub	sp, sp, #S_FRAME_SIZE
 	stmia	sp, {r0 - r12}			@ Calling r0-r12
-	ldr	r2, =abort_stack
+	adr_l	r2, abort_stack
 	ldmia	r2, {r2 - r3}			@ get pc, cpsr
 	add	r0, sp, #S_FRAME_SIZE		@ restore sp_SVC
 
@@ -57,7 +58,7 @@
 	.endm
 
 	.macro get_bad_stack
-	ldr	r13, =abort_stack
+	adr_l	r13, abort_stack
 	str	lr, [r13]			@ save caller lr / spsr
 	mrs	lr, spsr
 	str     lr, [r13, #4]
@@ -70,11 +71,11 @@
 	.endm
 
 	.macro try_data_abort
-	ldr	r13, =arm_ignore_data_abort	@ check try mode
+	adr_l	r13, arm_ignore_data_abort	@ check try mode
 	ldr	r13, [r13]
 	cmp	r13, #0
 	beq	do_abort_\@
-	ldr	r13, =arm_data_abort_occurred
+	adr_l	r13, arm_data_abort_occurred
 	str	r13, [r13]
 	mrs	r13, spsr			@ read saved CPSR
 	tst	r13, #1<<5			@ check Thumb mode
@@ -132,13 +133,13 @@ fiq:
 extable:
 1:	b 1b				/* barebox_arm_reset_vector */
 #ifdef CONFIG_ARM_EXCEPTIONS
-	ldr pc, =undefined_instruction	/* undefined instruction */
-	ldr pc, =software_interrupt	/* software interrupt (SWI) */
-	ldr pc, =prefetch_abort		/* prefetch abort */
-	ldr pc, =data_abort		/* data abort */
+	b undefined_instruction		/* undefined instruction */
+	b software_interrupt		/* software interrupt (SWI) */
+	b prefetch_abort		/* prefetch abort */
+	b data_abort			/* data abort */
 1:	b 1b				/* (reserved) */
-	ldr pc, =irq			/* irq (interrupt) */
-	ldr pc, =fiq			/* fiq (fast interrupt) */
+	b irq				/* irq (interrupt) */
+	b fiq				/* fiq (fast interrupt) */
 #else
 1:	b 1b				/* undefined instruction */
 1:	b 1b				/* software interrupt (SWI) */

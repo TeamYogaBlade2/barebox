@@ -49,7 +49,7 @@ ENTRY(secure_monitor_stack_setup)
 	and	r0, r0, #0xff           /* CPU ID => r0 */
 
 	@ stack top = __secure_stack_end - (cpuid << ARM_PSCI_STACK_SHIFT)
-	ldr	r1, =__secure_stack_end
+	adr_l	r1, __secure_stack_end
 	sub	r0, r1, r0, LSL #ARM_SECURE_STACK_SHIFT
 	sub	r0, r0, #4              @ Save space for target PC
 
@@ -64,7 +64,7 @@ secure_monitor_init:
 
 	push	{r4-r7}
 	mov	r7, r3
-	ldr	r5, =secure_monitor_vectors	@ Switch MVBAR to secure_monitor_vectors
+	adr_l	r5, secure_monitor_vectors	@ Switch MVBAR to secure_monitor_vectors
 	mcr	p15, 0, r5, c12, c0, 1
 	isb
 
