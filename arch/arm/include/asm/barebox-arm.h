@@ -262,6 +262,7 @@ void __barebox_arm64_head(ulong x0, ulong x1, ulong x2);
 	void __naked __section(.text_head_entry_##name)	name		\
 				(ulong r0, ulong r1, ulong r2)		\
 		{							\
+			__keep_symbolref(head);				\
 			__asm__ __volatile__(				\
 				"b " __stringify(head) "\n"		\
 				: : : "memory");			\
