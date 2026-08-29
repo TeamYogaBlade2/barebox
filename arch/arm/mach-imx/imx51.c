@@ -137,9 +137,9 @@ void imx51_init_lowlevel(unsigned int cpufreq_mhz)
 
 	/* disable write combine for TO 2 and lower revs */
 	if (rev < IMX_CHIP_REV_3_0) {
-		__asm__ __volatile__("mrc 15, 1, %0, c9, c0, 1":"=r"(r));
+		__asm__ __volatile__("mrc p15, 1, %0, c9, c0, 1":"=r"(r));
 		r |= (1 << 25);
-		__asm__ __volatile__("mcr 15, 1, %0, c9, c0, 1" : : "r"(r));
+		__asm__ __volatile__("mcr p15, 1, %0, c9, c0, 1" : : "r"(r));
 	}
 
 	/* Gate of clocks to the peripherals first */

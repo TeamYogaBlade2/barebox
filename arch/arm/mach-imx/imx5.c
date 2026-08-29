@@ -39,14 +39,14 @@ void imx5_init_lowlevel(void)
 {
 	u32 r;
 
-	__asm__ __volatile__("mrc 15, 0, %0, c1, c0, 1":"=r"(r));
+	__asm__ __volatile__("mrc p15, 0, %0, c1, c0, 1":"=r"(r));
 
 	if (r & (1 << 1))
 		return;
 
 	/* ARM errata ID #468414 */
 	r |= (1 << 5);    /* enable L1NEON bit */
-	__asm__ __volatile__("mcr 15, 0, %0, c1, c0, 1" : : "r"(r));
+	__asm__ __volatile__("mcr p15, 0, %0, c1, c0, 1" : : "r"(r));
 
         /* reconfigure L2 cache aux control reg */
 	r = 0xc0 |		/* tag RAM */
@@ -55,9 +55,9 @@ void imx5_init_lowlevel(void)
 		(1 << 23) |	/* disable write allocate combine */
 		(1 << 22);	/* disable write allocate */
 
-	__asm__ __volatile__("mcr 15, 1, %0, c9, c0, 2" : : "r"(r));
+	__asm__ __volatile__("mcr p15, 1, %0, c9, c0, 2" : : "r"(r));
 
-	__asm__ __volatile__("mrc 15, 0, %0, c1, c0, 1":"=r"(r));
+	__asm__ __volatile__("mrc p15, 0, %0, c1, c0, 1":"=r"(r));
 	r |= 1 << 1; 	/* enable L2 cache */
-	__asm__ __volatile__("mcr 15, 0, %0, c1, c0, 1" : : "r"(r));
+	__asm__ __volatile__("mcr p15, 0, %0, c1, c0, 1" : : "r"(r));
 }

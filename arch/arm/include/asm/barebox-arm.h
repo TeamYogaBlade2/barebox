@@ -262,10 +262,11 @@ void __barebox_arm64_head(ulong x0, ulong x1, ulong x2);
 	void __naked __section(.text_head_entry_##name)	name		\
 				(ulong r0, ulong r1, ulong r2)		\
 		{							\
-			head();				\
-			__##name(r0, r1, r2);				\
+			__asm__ __volatile__(				\
+				"b " __stringify(head) "\n"		\
+				: : : "memory");			\
 		}							\
-	static void __naked noinline __##name				\
+	static void noinline __##name					\
 		(ulong arg0, ulong arg1, ulong arg2)
 
 #define ENTRY_FUNCTION(name, arg0, arg1, arg2)		\

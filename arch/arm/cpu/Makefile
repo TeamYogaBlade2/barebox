@@ -9,8 +9,14 @@ obj-pbl-$(CONFIG_MMU) += mmu_$(S64_32).o
 obj-$(CONFIG_MMU) += dma_$(S64_32).o
 obj-pbl-y += lowlevel_$(S64_32).o
 obj-pbl-$(CONFIG_CPU_32v7) += hyp.o
-AFLAGS_hyp.o :=-Wa,-march=armv7-a -Wa,-mcpu=all
-AFLAGS_hyp.pbl.o :=-Wa,-march=armv7-a -Wa,-mcpu=all
+
+ifeq ($(findstring clang,$(notdir $(CC))),clang)
+AFLAGS_hyp.o := -Wa,-march=armv7ve
+AFLAGS_hyp.pbl.o := -Wa,-march=armv7ve
+else
+AFLAGS_hyp.o := -Wa,-march=armv7-a -Wa,-mcpu=all
+AFLAGS_hyp.pbl.o := -Wa,-march=armv7-a -Wa,-mcpu=all
+endif
 
 obj-y += start.o entry.o entry_ll_$(S64_32).o
 KASAN_SANITIZE_start.o := n

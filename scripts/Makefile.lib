@@ -31,6 +31,9 @@ _a_flags       = $(filter-out $(AFLAGS_REMOVE_$(target-stem).o), \
                      $(filter-out $(asflags-remove-y), \
                          $(KBUILD_CPPFLAGS) $(KBUILD_AFLAGS) $(asflags-y)) \
                      $(AFLAGS_$(target-stem).o))
+ifeq ($(findstring clang,$(notdir $(CC))),clang)
+_a_flags += -Wno-unused-command-line-argument
+endif
 _cpp_flags     = $(KBUILD_CPPFLAGS) $(cppflags-y) $(CPPFLAGS_$(target-stem).lds)
 
 #
