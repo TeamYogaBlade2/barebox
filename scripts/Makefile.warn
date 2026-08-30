@@ -26,6 +26,7 @@ KBUILD_CFLAGS += -Wno-gnu
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=111219
 KBUILD_CFLAGS += $(call cc-option, -Wno-format-overflow-non-kprintf)
 KBUILD_CFLAGS += $(call cc-option, -Wno-format-truncation-non-kprintf)
+KBUILD_CFLAGS += -Wno-unused-but-set-variable
 
 # Clang may emit a warning when a const variable, such as the dummy variables
 # in typecheck(), or const member of an aggregate type are not initialized,

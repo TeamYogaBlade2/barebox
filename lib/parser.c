@@ -135,6 +135,10 @@ EXPORT_SYMBOL(match_token);
  * Return: On success, sets @result to the integer represented by the
  * string and returns 0. Returns -EINVAL or -ERANGE on failure.
  */
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wtautological-type-limit-compare"
+#endif
 static int match_number(substring_t *s, int *result, int base)
 {
 	char *endp;
@@ -154,6 +158,9 @@ static int match_number(substring_t *s, int *result, int base)
 		*result = (int) val;
 	return ret;
 }
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 /**
  * match_u64int - scan a number in the given base from a substring_t
