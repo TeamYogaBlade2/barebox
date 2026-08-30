@@ -46,3 +46,33 @@ jobs:
                 -k common/boards/configs/disable_target_tools.config \
                 -k common/boards/configs/enable_werror.config \
                 '${{matrix.config}}'
+  build-llvm:
+    needs: defconfigs
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/barebox/barebox/barebox-ci:latest
+      # allow mounting and devtmpfs in the container
+      options: --user=root --privileged -v /dev:/dev
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.defconfigs.outputs.matrix) }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build with LLVM
+      run: |
+        export ARCH=${{matrix.arch}}
+        export LLVM=1
+
+        ./test/generate-dummy-fw.sh
+
+        export GNUMAKEFLAGS=--shuffle
+
+        ./MAKEALL -O build-llvm-${{matrix.arch}} -l "" -v 0 \
+                -k common/boards/configs/disable_size_check.config \
+                -k common/boards/configs/disable_target_tools.config \
+                -k common/boards/configs/enable_werror.config \
+                '${{matrix.config}}'
