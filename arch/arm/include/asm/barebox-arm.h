@@ -267,7 +267,7 @@ void __barebox_arm64_head(ulong x0, ulong x1, ulong x2);
 				"b " __stringify(head) "\n"		\
 				: : : "memory");			\
 		}							\
-	static void noinline __##name					\
+	static void __used noinline __##name				\
 		(ulong arg0, ulong arg1, ulong arg2)
 
 #define ENTRY_FUNCTION(name, arg0, arg1, arg2)		\
