@@ -23,6 +23,13 @@ config WATCHDOG_AR9344
 	help
 	  Add support for watchdog on the QCA AR9344 SoC.
 
+config WATCHDOG_MTK
+	bool "MediaTek watchdog (TOPRGU)"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+	help
+	  Watchdog driver for MediaTek SoCs (MT6589 etc.). Supports kick-only
+	  operation suitable for keeping the WDT alive while barebox runs.
+
 config WATCHDOG_AT91SAM9
 	bool "Watchdog for AT91SAM9 and SAMA5 SoCs"
 	depends on ARCH_AT91

@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+menu "MediaTek Features"
+	depends on ARCH_MEDIATEK
+
+config ARCH_MT6589
+	bool "MediaTek MT6589"
+	select CPU_V7
+	select ARM_SMP_TWD
+	select ARCH_HAS_L2X0
+	select COMMON_CLK
+	select COMMON_CLK_OF_PROVIDER
+	select CLOCKSOURCE_MEDIATEK
+	help
+	  Support for MediaTek MT6589 SoC (Cortex-A7 quad-core).
+
+endmenu

@@ -11,7 +11,8 @@ obj-$(CONFIG_CLOCKSOURCE_MVEBU)   += mvebu.o
 obj-$(CONFIG_CLOCKSOURCE_NOMADIK) += nomadik.o
 obj-$(CONFIG_CLOCKSOURCE_ORION)   += orion.o
 obj-$(CONFIG_CLOCKSOURCE_UEMD)    += uemd.o
-obj-$(CONFIG_CLOCKSOURCE_ROCKCHIP)+= rk_timer.o
+obj-$(CONFIG_CLOCKSOURCE_MEDIATEK)	+= timer-mediatek.o
+obj-$(CONFIG_CLOCKSOURCE_ROCKCHIP)	+= rk_timer.o
 obj-$(CONFIG_CLOCKSOURCE_ATMEL_PIT) += timer-atmel-pit.o
 obj-pbl-$(CONFIG_CLOCKSOURCE_ARM_ARCHITECTED_TIMER) += arm_architected_timer.o
 ifneq ($(CONFIG_CPU_V8),y)

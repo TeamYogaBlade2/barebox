@@ -9,8 +9,14 @@ obj-pbl-$(CONFIG_MMU) += mmu_$(S64_32).o
 obj-$(CONFIG_MMU) += dma_$(S64_32).o
 obj-pbl-y += lowlevel_$(S64_32).o
 obj-pbl-$(CONFIG_CPU_32v7) += hyp.o
-AFLAGS_hyp.o :=-Wa,-march=armv7-a -Wa,-mcpu=all
+# -Wa,-mcpu=all is GNU as-specific; LLVM IAS only needs -march=armv7-a
+ifdef CONFIG_CC_IS_CLANG
+AFLAGS_hyp.o     :=-Wa,-march=armv7-a
+AFLAGS_hyp.pbl.o :=-Wa,-march=armv7-a
+else
+AFLAGS_hyp.o     :=-Wa,-march=armv7-a -Wa,-mcpu=all
 AFLAGS_hyp.pbl.o :=-Wa,-march=armv7-a -Wa,-mcpu=all
+endif
 
 obj-y += start.o entry.o entry_ll_$(S64_32).o
 KASAN_SANITIZE_start.o := n
