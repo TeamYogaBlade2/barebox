@@ -98,3 +98,9 @@ config REGULATOR_PCA9450
 	  regulator driver.
 
 endif
+
+config REGULATOR_MT6320
+	bool "MediaTek MT6320 regulators"
+	depends on MFD_MT6320 || COMPILE_TEST
+	help
+	  Buck and LDO regulators on the MT6320 PMIC.
