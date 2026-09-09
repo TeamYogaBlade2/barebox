@@ -233,17 +233,13 @@ static int mtk_tphy_probe(struct device *dev)
 	struct mtk_tphy *tphy;
 	struct resource *res;
 	struct phy_provider *provider;
-	const struct of_device_id *match;
 
 	tphy = xzalloc(sizeof(*tphy));
 	tphy->dev = dev;
 	dev->priv = tphy;
 
-	/* MT6589 always needs the workaround */
-	tphy->need_mt6589_workaround = true;
-	if (of_device_is_compatible(dev->of_node, "mediatek,generic-tphy-v1"))
-		tphy->need_mt6589_workaround =
-			of_device_is_compatible(dev->of_node, "mediatek,mt6589-tphy");
+	/* .data is non-NULL for MT6589 which needs the USB recover sequence */
+	tphy->need_mt6589_workaround = !!device_get_match_data(dev);
 
 	res = dev_get_resource(dev, IORESOURCE_MEM, 0);
 	if (!IS_ERR(res))
@@ -263,7 +259,7 @@ static int mtk_tphy_probe(struct device *dev)
 }
 
 static const struct of_device_id mtk_tphy_ids[] = {
-	{ .compatible = "mediatek,mt6589-tphy" },
+	{ .compatible = "mediatek,mt6589-tphy", .data = (void *)1 },
 	{ .compatible = "mediatek,generic-tphy-v1" },
 	{ /* sentinel */ }
 };

@@ -262,27 +262,43 @@ static int mt6589_infracfg_probe(struct device *dev)
 	return 0;
 }
 
+enum mt6589_clk_type {
+	MT6589_CLK_APMIXED,
+	MT6589_CLK_TOPCKGEN,
+	MT6589_CLK_PERICFG,
+	MT6589_CLK_INFRACFG,
+};
+
 static int mt6589_clk_probe(struct device *dev)
 {
-	const char *compat = of_get_property(dev->of_node, "compatible", NULL);
-	if (!compat)
-		return -EINVAL;
-	if (strstr(compat, "apmixedsys"))
+	const void *data = device_get_match_data(dev);
+
+	if (!data)
+		return -ENODEV;
+
+	switch ((uintptr_t)data) {
+	case MT6589_CLK_APMIXED:
 		return mt6589_apmixed_probe(dev);
-	if (strstr(compat, "topckgen"))
+	case MT6589_CLK_TOPCKGEN:
 		return mt6589_topckgen_probe(dev);
-	if (strstr(compat, "pericfg"))
+	case MT6589_CLK_PERICFG:
 		return mt6589_pericfg_probe(dev);
-	if (strstr(compat, "infracfg"))
+	case MT6589_CLK_INFRACFG:
 		return mt6589_infracfg_probe(dev);
-	return 0;
+	default:
+		return -EINVAL;
+	}
 }
 
 static const struct of_device_id mt6589_clk_ids[] = {
-	{ .compatible = "mediatek,mt6589-topckgen" },
-	{ .compatible = "mediatek,mt6589-apmixedsys" },
-	{ .compatible = "mediatek,mt6589-pericfg" },
-	{ .compatible = "mediatek,mt6589-infracfg" },
+	{ .compatible = "mediatek,mt6589-apmixedsys",
+	  .data = (void *)MT6589_CLK_APMIXED },
+	{ .compatible = "mediatek,mt6589-topckgen",
+	  .data = (void *)MT6589_CLK_TOPCKGEN },
+	{ .compatible = "mediatek,mt6589-pericfg",
+	  .data = (void *)MT6589_CLK_PERICFG },
+	{ .compatible = "mediatek,mt6589-infracfg",
+	  .data = (void *)MT6589_CLK_INFRACFG },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, mt6589_clk_ids);
