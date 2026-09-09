@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * MediaTek MSDC host for MT6589 secondary bootloader
- * Implements init, set_ios and a polled send_cmd for basic commands.
+ * PIO mode with Read and Write support.
  */
 
 #include <common.h>
@@ -13,6 +13,7 @@
 #include <io.h>
 #include <linux/bitops.h>
 #include <clock.h>
+#include <dma.h>
 
 #define MSDC_CFG		0x00
 #define MSDC_CFG_MODE		BIT(0)
@@ -24,10 +25,17 @@
 #define MSDC_CFG_CKMOD		GENMASK(17, 16)
 
 #define MSDC_IOCON		0x04
-#define MSDC_PS			0x24
+#define MSDC_PS			0x08
 #define MSDC_INT		0x0c
 #define MSDC_INTEN		0x10
 #define MSDC_FIFOCS		0x14
+#define MSDC_TXDATA		0x18
+#define MSDC_RXDATA		0x1c
+
+#define MSDC_FIFOCS_RXCNT	GENMASK(7, 0)
+#define MSDC_FIFOCS_TXCNT	GENMASK(23, 16)
+#define MSDC_FIFOCS_CLR		BIT(31)
+#define MSDC_FIFO_SZ		128
 
 #define SDC_CFG			0x30
 #define SDC_CMD			0x34
@@ -44,6 +52,9 @@
 #define MSDC_INT_CMDRDY		BIT(8)
 #define MSDC_INT_CMDTMO		BIT(9)
 #define MSDC_INT_RSPCRCERR	BIT(10)
+#define MSDC_INT_XFER_COMPL	BIT(12)
+#define MSDC_INT_DATTMO		BIT(14)
+#define MSDC_INT_DATCRCERR	BIT(15)
 
 struct mtk_sd_host {
 	struct mci_host mci;
@@ -62,6 +73,15 @@ static void msdc_reset_hw(struct mtk_sd_host *host)
 		;
 }
 
+static void msdc_fifo_clr(struct mtk_sd_host *host)
+{
+	u32 val = readl(host->base + MSDC_FIFOCS);
+	val |= MSDC_FIFOCS_CLR;
+	writel(val, host->base + MSDC_FIFOCS);
+	while (readl(host->base + MSDC_FIFOCS) & MSDC_FIFOCS_CLR)
+		;
+}
+
 static int mtk_sd_init(struct mci_host *mci, struct device *dev)
 {
 	struct mtk_sd_host *host = container_of(mci, struct mtk_sd_host, mci);
@@ -76,6 +96,7 @@ static int mtk_sd_init(struct mci_host *mci, struct device *dev)
 	writel(val, host->base + MSDC_CFG);
 
 	msdc_reset_hw(host);
+	msdc_fifo_clr(host);
 	writel(0xffffffff, host->base + MSDC_INT);
 	writel(0, host->base + MSDC_INTEN);
 
@@ -128,16 +149,125 @@ static u32 msdc_cmd_find_resp(struct mci_cmd *cmd)
 	}
 }
 
+static int msdc_pio_read(struct mtk_sd_host *host, struct mci_data *data)
+{
+	u8 *buf = data->dest;
+	unsigned int left = data->blocks * data->blocksize;
+	u64 start;
+	u32 count, val;
+
+	while (left) {
+		start = get_time_ns();
+		do {
+			count = readl(host->base + MSDC_FIFOCS) & MSDC_FIFOCS_RXCNT;
+			if (count)
+				break;
+			val = readl(host->base + MSDC_INT);
+			if (val & (MSDC_INT_DATTMO | MSDC_INT_DATCRCERR)) {
+				writel(val, host->base + MSDC_INT);
+				return (val & MSDC_INT_DATTMO) ? -ETIMEDOUT : -EILSEQ;
+			}
+		} while (!is_timeout(start, 500 * MSECOND));
+
+		if (!count)
+			return -ETIMEDOUT;
+
+		if (count > left)
+			count = left;
+		/* prefer 4-byte access */
+		while (count >= 4) {
+			*(u32 *)buf = readl(host->base + MSDC_RXDATA);
+			buf += 4;
+			count -= 4;
+			left -= 4;
+		}
+		while (count) {
+			*buf++ = readb(host->base + MSDC_RXDATA);
+			count--;
+			left--;
+		}
+	}
+
+	/* wait transfer complete */
+	start = get_time_ns();
+	do {
+		val = readl(host->base + MSDC_INT);
+		if (val & MSDC_INT_XFER_COMPL)
+			break;
+		if (val & (MSDC_INT_DATTMO | MSDC_INT_DATCRCERR)) {
+			writel(val, host->base + MSDC_INT);
+			return (val & MSDC_INT_DATTMO) ? -ETIMEDOUT : -EILSEQ;
+		}
+	} while (!is_timeout(start, 500 * MSECOND));
+
+	writel(val, host->base + MSDC_INT);
+	return (val & MSDC_INT_XFER_COMPL) ? 0 : -ETIMEDOUT;
+}
+
+static int msdc_pio_write(struct mtk_sd_host *host, struct mci_data *data)
+{
+	const u8 *buf = data->src;
+	unsigned int left = data->blocks * data->blocksize;
+	u64 start;
+	u32 count, val, space;
+
+	while (left) {
+		start = get_time_ns();
+		do {
+			count = (readl(host->base + MSDC_FIFOCS) & MSDC_FIFOCS_TXCNT) >> 16;
+			space = MSDC_FIFO_SZ - count;
+			if (space)
+				break;
+			val = readl(host->base + MSDC_INT);
+			if (val & (MSDC_INT_DATTMO | MSDC_INT_DATCRCERR)) {
+				writel(val, host->base + MSDC_INT);
+				return (val & MSDC_INT_DATTMO) ? -ETIMEDOUT : -EILSEQ;
+			}
+		} while (!is_timeout(start, 500 * MSECOND));
+
+		if (!space)
+			return -ETIMEDOUT;
+
+		if (space > left)
+			space = left;
+		while (space >= 4) {
+			writel(*(const u32 *)buf, host->base + MSDC_TXDATA);
+			buf += 4;
+			space -= 4;
+			left -= 4;
+		}
+		while (space) {
+			writeb(*buf++, host->base + MSDC_TXDATA);
+			space--;
+			left--;
+		}
+	}
+
+	start = get_time_ns();
+	do {
+		val = readl(host->base + MSDC_INT);
+		if (val & MSDC_INT_XFER_COMPL)
+			break;
+		if (val & (MSDC_INT_DATTMO | MSDC_INT_DATCRCERR)) {
+			writel(val, host->base + MSDC_INT);
+			return (val & MSDC_INT_DATTMO) ? -ETIMEDOUT : -EILSEQ;
+		}
+	} while (!is_timeout(start, 1000 * MSECOND));
+
+	writel(val, host->base + MSDC_INT);
+	return (val & MSDC_INT_XFER_COMPL) ? 0 : -ETIMEDOUT;
+}
+
 static int mtk_sd_send_cmd(struct mci_host *mci, struct mci_cmd *cmd)
 {
 	struct mtk_sd_host *host = container_of(mci, struct mtk_sd_host, mci);
 	u32 rawcmd, val, resp;
 	u64 start;
+	int ret = 0;
 
 	if (!host->base)
 		return -ENODEV;
 
-	/* Wait for command bus free */
 	start = get_time_ns();
 	while (readl(host->base + SDC_STS) & SDC_STS_CMDBUSY) {
 		if (is_timeout(start, 20 * MSECOND))
@@ -152,24 +282,32 @@ static int mtk_sd_send_cmd(struct mci_host *mci, struct mci_cmd *cmd)
 		}
 	}
 
-	/* Clear interrupts */
 	writel(0xffffffff, host->base + MSDC_INT);
+	msdc_fifo_clr(host);
 
 	resp = msdc_cmd_find_resp(cmd);
 	rawcmd = (cmd->cmdidx & 0x3f) | ((resp & 0x7) << 7);
 
 	if (cmd->data) {
-		/* Basic data command support is still limited; prefer PIO later */
-		rawcmd |= BIT(11); /* single block data */
-		if (cmd->data->flags & MMC_DATA_WRITE)
+		struct mci_data *data = cmd->data;
+		rawcmd |= ((data->blocksize & 0xfff) << 16);
+		if (data->flags & MMC_DATA_WRITE)
 			rawcmd |= BIT(13);
-		writel(1, host->base + SDC_BLK_NUM);
+		if (data->blocks > 1)
+			rawcmd |= BIT(12); /* multi */
+		else
+			rawcmd |= BIT(11); /* single */
+		/* keep PIO mode */
+		val = readl(host->base + MSDC_CFG);
+		val |= MSDC_CFG_PIO;
+		writel(val, host->base + MSDC_CFG);
+		writel(data->blocks, host->base + SDC_BLK_NUM);
 	}
 
 	writel(cmd->cmdarg, host->base + SDC_ARG);
 	writel(rawcmd, host->base + SDC_CMD);
 
-	/* Poll for command complete */
+	/* Wait command done */
 	start = get_time_ns();
 	do {
 		val = readl(host->base + MSDC_INT);
@@ -177,7 +315,8 @@ static int mtk_sd_send_cmd(struct mci_host *mci, struct mci_cmd *cmd)
 			break;
 	} while (!is_timeout(start, 100 * MSECOND));
 
-	writel(val, host->base + MSDC_INT); /* clear */
+	writel(val & (MSDC_INT_CMDRDY | MSDC_INT_CMDTMO | MSDC_INT_RSPCRCERR),
+	       host->base + MSDC_INT);
 
 	if (val & MSDC_INT_CMDTMO)
 		return -ETIMEDOUT;
@@ -186,7 +325,6 @@ static int mtk_sd_send_cmd(struct mci_host *mci, struct mci_cmd *cmd)
 	if (!(val & MSDC_INT_CMDRDY))
 		return -ETIMEDOUT;
 
-	/* Read response */
 	if (cmd->resp_type == MMC_RSP_R2) {
 		cmd->response[0] = readl(host->base + SDC_RESP3);
 		cmd->response[1] = readl(host->base + SDC_RESP2);
@@ -196,7 +334,15 @@ static int mtk_sd_send_cmd(struct mci_host *mci, struct mci_cmd *cmd)
 		cmd->response[0] = readl(host->base + SDC_RESP0);
 	}
 
-	return 0;
+	/* Data phase in PIO */
+	if (cmd->data) {
+		if (cmd->data->flags & MMC_DATA_WRITE)
+			ret = msdc_pio_write(host, cmd->data);
+		else
+			ret = msdc_pio_read(host, cmd->data);
+	}
+
+	return ret;
 }
 
 static const struct mci_ops mtk_sd_ops = {
@@ -234,8 +380,7 @@ static int mtk_sd_probe(struct device *dev)
 	if (!IS_ERR_OR_NULL(host->h_clk))
 		clk_enable(host->h_clk);
 
-	dev_info(dev, "MTK MSDC host registered (src %u Hz, polled CMD)\n",
-		 host->src_hz);
+	dev_info(dev, "MTK MSDC PIO host registered (src %u Hz)\n", host->src_hz);
 	return mci_register(&host->mci);
 }
 
