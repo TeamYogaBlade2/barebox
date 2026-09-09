@@ -228,6 +228,17 @@ config ARCH_ROCKCHIP
 	select HAS_DEBUG_LL
 	imply GPIO_ROCKCHIP
 
+config ARCH_MEDIATEK
+	bool "MediaTek SoCs"
+	select CPU_V7
+	select ARM_GIC
+	select HAVE_CLK
+	select COMMON_CLK
+	select PINCTRL
+	select OFDEVICE
+	help
+	  Support for MediaTek SoCs (MT6589 etc).
+
 config ARCH_SAMSUNG
 	bool "ARM Exynos boards"
 	depends on ARCH_MULTIARCH
@@ -312,6 +323,7 @@ source "arch/arm/mach-vexpress/Kconfig"
 source "arch/arm/mach-tegra/Kconfig"
 source "arch/arm/mach-zynq/Kconfig"
 source "arch/arm/mach-zynqmp/Kconfig"
+source "arch/arm/mach-mediatek/Kconfig"
 
 if ARCH_MICROCHIP
 
