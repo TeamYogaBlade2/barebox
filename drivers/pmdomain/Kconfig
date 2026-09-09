@@ -1,8 +1,3 @@
-# SPDX-License-Identifier: GPL-2.0-only
-menu "PM Domains"
-
-source "drivers/pmdomain/imx/Kconfig"
-source "drivers/pmdomain/rockchip/Kconfig"
-source "drivers/pmdomain/ti/Kconfig"
-
-endmenu
+config MTK_PM_DOMAINS
+	bool "MediaTek power domains"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
