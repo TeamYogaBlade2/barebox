@@ -225,13 +225,6 @@ static int mtk_musb_probe(struct device *dev)
 	config->num_eps = 8;
 	config->ram_bits = 12;
 	config->multipoint = 1;
-	{
-	u32 tmp;
-	if (!of_property_read_u32(dev->of_node, "mentor,num-eps", &tmp))
-		config->num_eps = tmp;
-	}
-	of_property_read_u32(dev->of_node, "mentor,ram-bits", &config->ram_bits);
-	config->multipoint = of_property_read_bool(dev->of_node, "mentor,multipoint");
 
 	switch (pdata->mode) {
 	case MUSB_HOST:
