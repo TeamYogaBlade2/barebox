@@ -45,10 +45,11 @@
 #define P2C_RG_SUSPENDM			BIT(3)
 
 #define U3P_U2PHYDTM1		0x06c
-#define P2C_RG_VBUSVALID		BIT(23)
-#define P2C_RG_AVALID			BIT(20)
-#define P2C_RG_SESSEND			BIT(16)
 #define P2C_RG_UART_EN			BIT(16)
+#define P2C_RG_VBUSVALID		BIT(5)
+#define P2C_RG_SESSEND			BIT(4)
+#define P2C_RG_AVALID			BIT(2)
+#define P2C_RG_IDDIG			BIT(1)
 
 struct mtk_tphy {
 	struct device *dev;

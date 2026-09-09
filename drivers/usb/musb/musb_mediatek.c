@@ -20,6 +20,7 @@
 
 #define USB_L1INTS		0x00a0
 #define USB_L1INTM		0x00a4
+#define MTK_MUSB_TXFUNCADDR	0x0480
 #define MUSB_RXTOG		0x80
 #define MUSB_RXTOGEN		0x82
 #define MUSB_TXTOG		0x84
@@ -43,6 +44,32 @@ struct mtk_glue {
 	enum phy_mode phy_mode;
 };
 
+/* W1C helpers for interrupt status registers */
+static u8 mtk_musb_clearb(void __iomem *addr, unsigned int offset)
+{
+	u8 data = musb_readb(addr, offset);
+
+	musb_writeb(addr, offset, data);
+	return data;
+}
+
+static u16 mtk_musb_clearw(void __iomem *addr, unsigned int offset)
+{
+	u16 data = musb_readw(addr, offset);
+
+	musb_writew(addr, offset, data);
+	return data;
+}
+
+/*
+ * MediaTek places EP function-address registers at a non-standard offset.
+ * Exposed for future use when barebox musb core gains busctl_offset support.
+ */
+static u32 mtk_musb_busctl_offset(u8 epnum, u16 offset)
+{
+	return MTK_MUSB_TXFUNCADDR + offset + 8 * epnum;
+}
+
 static int mtk_musb_interrupt(struct musb *musb)
 {
 	u32 l1_ints;
@@ -50,8 +77,15 @@ static int mtk_musb_interrupt(struct musb *musb)
 	l1_ints = musb_readl(musb->mregs, USB_L1INTS) &
 		  musb_readl(musb->mregs, USB_L1INTM);
 
-	if (l1_ints & (TX_INT_STATUS | RX_INT_STATUS | USBCOM_INT_STATUS))
-		return musb_interrupt(musb);
+	if (l1_ints & (TX_INT_STATUS | RX_INT_STATUS | USBCOM_INT_STATUS)) {
+		/* Latch and clear the lower-level MUSB interrupt status */
+		musb->int_usb = mtk_musb_clearb(musb->mregs, MUSB_INTRUSB);
+		musb->int_rx = mtk_musb_clearw(musb->mregs, MUSB_INTRRX);
+		musb->int_tx = mtk_musb_clearw(musb->mregs, MUSB_INTRTX);
+
+		if (musb->int_usb || musb->int_tx || musb->int_rx)
+			return musb_interrupt(musb);
+	}
 
 	return 0;
 }

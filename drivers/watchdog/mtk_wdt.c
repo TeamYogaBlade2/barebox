@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * MediaTek Watchdog Driver (simplified for barebox secondary bootloader)
- * Kick-only support.
+ * MediaTek Watchdog Driver for barebox secondary bootloader
  *
- * Based on Linux drivers/watchdog/mtk_wdt.c
+ * WDT clock is 32768 Hz. LENGTH counts in units of 512 clocks
+ * (= 15.625 ms per count). Max count is 1023 ≈ 15.98 s.
  */
 
 #include <common.h>
@@ -20,10 +20,17 @@
 
 #define WDT_LENGTH		0x04
 #define WDT_LENGTH_KEY		0x8
-#define WDT_LENGTH_TIMEOUT(n)	((n) << 5)
 
 #define WDT_RST			0x08
 #define WDT_RST_RELOAD		0x1971
+
+#define WDT_SWRST		0x14
+#define WDT_SWRST_KEY		0x1209
+
+/* 32768 / 512 = 64 counts per second */
+#define WDT_COUNTS_PER_SEC	64
+#define WDT_MAX_COUNT		1023
+#define WDT_MAX_TIMEOUT		15	/* floor(1023/64) */
 
 struct mtk_wdt {
 	void __iomem *base;
@@ -34,17 +41,21 @@ struct mtk_wdt {
 static int mtk_wdt_set_timeout(struct watchdog *wdd, unsigned int timeout)
 {
 	struct mtk_wdt *mtk = container_of(wdd, struct mtk_wdt, wdd);
-	u32 reg;
+	u32 count, reg;
 
-	if (timeout > 31)
-		timeout = 31;
+	if (timeout > WDT_MAX_TIMEOUT)
+		timeout = WDT_MAX_TIMEOUT;
 	if (timeout < 1)
 		timeout = 1;
 
-	reg = WDT_LENGTH_KEY | WDT_LENGTH_TIMEOUT(timeout);
+	count = timeout * WDT_COUNTS_PER_SEC;
+	if (count > WDT_MAX_COUNT)
+		count = WDT_MAX_COUNT;
+
+	/* LENGTH[15:5] = count, KEY in low bits */
+	reg = WDT_LENGTH_KEY | (count << 5);
 	writel(reg, mtk->base + WDT_LENGTH);
 
-	/* enable and reload */
 	reg = readl(mtk->base + WDT_MODE);
 	reg |= WDT_MODE_EN | WDT_MODE_KEY;
 	writel(reg, mtk->base + WDT_MODE);
@@ -82,7 +93,7 @@ static int mtk_wdt_probe(struct device *dev)
 
 	mtk->wdd.name = "mtk-wdt";
 	mtk->wdd.hwdev = dev;
-	mtk->wdd.timeout_max = 31;
+	mtk->wdd.timeout_max = WDT_MAX_TIMEOUT;
 	mtk->wdd.set_timeout = mtk_wdt_set_timeout;
 	mtk->wdd.ping = mtk_wdt_ping;
 	mtk->wdd.priority = 100;
