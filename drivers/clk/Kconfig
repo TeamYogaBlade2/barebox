@@ -94,3 +94,10 @@ config COMMON_CLK_LAN966X
 	  SoC.
 
 endif
+
+config COMMON_CLK_MT6589
+	bool "MediaTek MT6589 clocks"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+	select COMMON_CLK
+	help
+	  Minimal fixed-rate clocks for MT6589 secondary bootloader.
