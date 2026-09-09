@@ -30,7 +30,7 @@ static int mtk_musb_probe(struct device *dev)
 	mtk->clks[0].id = "main";
 	mtk->clks[1].id = "mcu";
 	mtk->clks[2].id = "univpll";
-	ret = clk_bulk_get(dev, 3, mtk->clks);
+	ret = clk_bulk_get(dev, 3, mtk->clks); if (ret) dev_dbg(dev, "clocks not ready yet\n");
 	if (!ret)
 		clk_bulk_enable(3, mtk->clks);
 
