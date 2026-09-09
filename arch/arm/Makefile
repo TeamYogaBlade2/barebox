@@ -70,6 +70,13 @@ arch-$(CONFIG_CPU_32v6)		:=-D__LINUX_ARM_ARCH__=6 $(call cc-option,-march=armv6,
 arch-$(CONFIG_CPU_32v5)		:=-D__LINUX_ARM_ARCH__=5 $(call cc-option,-march=armv5te,-march=armv4t)
 arch-$(CONFIG_CPU_32v4T)	:=-D__LINUX_ARM_ARCH__=4 -march=armv4t
 
+# Clang with --target already encodes the architecture; -march becomes
+# "unused" from the driver. Suppress so the flag still reaches the IAS.
+ifdef CONFIG_CC_IS_CLANG
+KBUILD_CFLAGS += -Wno-unused-command-line-argument
+KBUILD_AFLAGS += -Wno-unused-command-line-argument
+endif
+
 # This selects how we optimise for the processor.
 tune-$(CONFIG_CPU_ARM920T)	:=-mtune=arm9tdmi
 tune-$(CONFIG_CPU_ARM926T)	:=-mtune=arm9tdmi
@@ -112,6 +119,7 @@ machine-$(CONFIG_ARCH_CLPS711X)		+= clps711x
 machine-$(CONFIG_ARCH_IMX)		+= imx
 machine-$(CONFIG_ARCH_K3)		+= k3
 machine-$(CONFIG_ARCH_LAYERSCAPE)	+= layerscape
+machine-$(CONFIG_ARCH_MEDIATEK)		+= mediatek
 machine-$(CONFIG_ARCH_MXS)		+= mxs
 machine-$(CONFIG_ARCH_MVEBU)		+= mvebu
 machine-$(CONFIG_ARCH_OMAP)		+= omap

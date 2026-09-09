@@ -217,6 +217,15 @@ config ARCH_OMAP_MULTI
 	select HAS_DEBUG_LL
 	select GPIOLIB
 
+config ARCH_MEDIATEK
+	bool "MediaTek ARM SoCs"
+	depends on ARCH_MULTIARCH
+	select COMMON_CLK
+	select COMMON_CLK_OF_PROVIDER
+	select GPIOLIB
+	select PINCTRL
+	select HAS_DEBUG_LL
+
 config ARCH_ROCKCHIP
 	bool "Rockchip RX3xxx"
 	depends on ARCH_MULTIARCH
@@ -300,6 +309,7 @@ source "arch/arm/mach-layerscape/Kconfig"
 source "arch/arm/mach-mxs/Kconfig"
 source "arch/arm/mach-mvebu/Kconfig"
 source "arch/arm/mach-k3/Kconfig"
+source "arch/arm/mach-mediatek/Kconfig"
 source "arch/arm/mach-omap/Kconfig"
 source "arch/arm/mach-pxa/Kconfig"
 source "arch/arm/mach-rockchip/Kconfig"

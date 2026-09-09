@@ -36,12 +36,36 @@ void __noreturn __barebox_arm_entry(unsigned long membase,
 				    void *boarddata,
 				    unsigned long sp);
 
+/*
+ * barebox_arm_entry() must be a naked function so it can set up the
+ * stack pointer before making any C calls.  Clang does not allow
+ * non-asm statements in naked functions for 32-bit ARM, so when
+ * building with Clang we spell out the call via inline assembly.
+ */
+#ifdef __clang__
+void NAKED __noreturn barebox_arm_entry(unsigned long membase,
+					unsigned long memsize, void *boarddata)
+{
+	/*
+	 * Compute arm_mem_stack_top(membase + memsize) = membase + memsize - 16
+	 * in r3, then tail-call __barebox_arm_entry(r0, r1, r2, r3).
+	 * r0=membase, r1=memsize, r2=boarddata are already in place.
+	 */
+	__asm__ volatile(
+		"add	r3, r0, r1\n"
+		"sub	r3, r3, #16\n"
+		"b	__barebox_arm_entry\n"
+		::: "r3"
+	);
+}
+#else
 void NAKED __noreturn barebox_arm_entry(unsigned long membase,
 					unsigned long memsize, void *boarddata)
 {
 	__barebox_arm_entry(membase, memsize, boarddata,
 			    arm_mem_stack_top(membase + memsize));
 }
+#endif
 
 void __noreturn barebox_pbl_entry(ulong, ulong, void *)
 	__alias(barebox_arm_entry);

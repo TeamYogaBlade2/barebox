@@ -1,0 +1,168 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * MediaTek MT6589 SoC device tree (barebox subset)
+ *
+ * Copyright (c) 2026 Akari Tsuyukusa <akkun11.open@gmail.com>
+ */
+
+#include <dt-bindings/clock/mediatek,mt6589-clk.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	compatible = "mediatek,mt6589";
+	#address-cells = <1>;
+	#size-cells = <1>;
+	interrupt-parent = <&gic>;
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a7";
+			reg = <0>;
+		};
+	};
+
+	aliases {
+		mmc0 = &mmc0;
+		serial0 = &uart0;
+	};
+
+	chosen {
+		/* barebox: framebuffer console */
+		stdout-path = "serial0:921600n8";
+	};
+
+	clocks {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		system_clk: system-clk {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <26000000>;
+		};
+
+		rtc32k: rtc32k {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <32768>;
+		};
+	};
+
+	soc {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "simple-bus";
+		ranges;
+
+		wdt: watchdog@10000000 {
+			compatible = "mediatek,mt6589-wdt";
+			reg = <0x10000000 0x1c>;
+			timeout-sec = <20>;
+		};
+
+		timer: timer@10004000 {
+			compatible = "mediatek,mt6589-timer",
+				     "mediatek,mt6577-timer";
+			reg = <0x10004000 0x80>;
+			clocks = <&system_clk>, <&rtc32k>;
+			clock-names = "system-clk", "rtc-clk";
+		};
+
+		gic: interrupt-controller@10211000 {
+			compatible = "arm,cortex-a7-gic";
+			#interrupt-cells = <3>;
+			interrupt-controller;
+			reg = <0x10211000 0x1000>,
+			      <0x10212000 0x2000>;
+		};
+
+		uart0: serial@11006000 {
+			compatible = "mediatek,mt6589-uart",
+				     "mediatek,mt6577-uart";
+			reg = <0x11006000 0x400>;
+			clocks = <&pericfg CLK_PERI0_UART0>;
+			clock-names = "baud";
+			status = "disabled";
+		};
+
+		uart1: serial@11007000 {
+			compatible = "mediatek,mt6589-uart",
+				     "mediatek,mt6577-uart";
+			reg = <0x11007000 0x400>;
+			clocks = <&pericfg CLK_PERI0_UART1>;
+			clock-names = "baud";
+			status = "disabled";
+		};
+
+		apmixedsys: syscon@10209000 {
+			compatible = "mediatek,mt6589-apmixedsys", "syscon";
+			reg = <0x10209000 0x1000>;
+			#clock-cells = <1>;
+		};
+
+		topckgen: syscon@10000100 {
+			compatible = "mediatek,mt6589-topckgen", "syscon";
+			reg = <0x10000100 0x400>;
+			#clock-cells = <1>;
+		};
+
+		infracfg: syscon@10001000 {
+			compatible = "mediatek,mt6589-infracfg", "syscon";
+			reg = <0x10001000 0x1000>;
+			#clock-cells = <1>;
+		};
+
+		pericfg: syscon@10003000 {
+			compatible = "mediatek,mt6589-pericfg", "syscon";
+			reg = <0x10003000 0x1000>;
+			#clock-cells = <1>;
+		};
+
+		pinctrl: pinctrl@10005000 {
+			compatible = "mediatek,mt6589-pinctrl";
+			reg = <0x10005000 0x1000>;
+			gpio-controller;
+			#gpio-cells = <2>;
+		};
+
+		pwrap: pwrap@1000f000 {
+			compatible = "mediatek,mt6589-pwrap";
+			reg = <0x1000f000 0x1000>;
+			clocks = <&infracfg CLK_INFRA_PMICSPI>,
+				 <&pericfg CLK_PERI1_PWRAP>;
+			clock-names = "spi", "wrap";
+			status = "okay";
+		};
+
+		mmc0: mmc@11230000 {
+			compatible = "mediatek,mt6589-mmc";
+			reg = <0x11230000 0x1000>;
+			clocks = <&pericfg CLK_PERI0_MSDC0>,
+				 <&infracfg CLK_INFRA_SMI>;
+			clock-names = "source", "hclk";
+			status = "disabled";
+		};
+
+		mmc1: mmc@11240000 {
+			compatible = "mediatek,mt6589-mmc";
+			reg = <0x11240000 0x1000>;
+			clocks = <&pericfg CLK_PERI0_MSDC1>,
+				 <&infracfg CLK_INFRA_SMI>;
+			clock-names = "source", "hclk";
+			status = "disabled";
+		};
+
+		usb0: usb@11200000 {
+			compatible = "mediatek,mt6589-musb";
+			reg = <0x11200000 0x1000>;
+			clocks = <&pericfg CLK_PERI0_USB0>;
+			clock-names = "usb0";
+			status = "disabled";
+		};
+	};
+};

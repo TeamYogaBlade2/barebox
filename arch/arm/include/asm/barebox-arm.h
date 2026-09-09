@@ -254,18 +254,29 @@ void __barebox_arm64_head(ulong x0, ulong x1, ulong x2);
 	static void noinline ____##name					\
 		(ulong arg0, ulong arg1, ulong arg2)
 
+/*
+ * Clang does not allow calling C functions from __naked functions on ARM32.
+ * For second-stage use (stack already configured by preloader), drop __naked
+ * on Clang and let it emit a normal prologue. Section placement is preserved.
+ */
+#ifdef __clang__
+# define __ENTRY_FN_ATTR noinline
+#else
+# define __ENTRY_FN_ATTR __naked
+#endif
+
 #define __ENTRY_FUNCTION_HEAD(name, head, arg0, arg1, arg2)		\
 	void name(ulong r0, ulong r1, ulong r2);			\
 									\
 	static void __##name(ulong, ulong, ulong);			\
 									\
-	void __naked __section(.text_head_entry_##name)	name		\
+	void __ENTRY_FN_ATTR __section(.text_head_entry_##name)	name	\
 				(ulong r0, ulong r1, ulong r2)		\
 		{							\
 			head();				\
 			__##name(r0, r1, r2);				\
 		}							\
-	static void __naked noinline __##name				\
+	static void __ENTRY_FN_ATTR noinline __##name			\
 		(ulong arg0, ulong arg1, ulong arg2)
 
 #define ENTRY_FUNCTION(name, arg0, arg1, arg2)		\

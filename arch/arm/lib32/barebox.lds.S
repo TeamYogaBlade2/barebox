@@ -102,5 +102,7 @@ SECTIONS
 	_barebox_image_size = ABSOLUTE(__bss_start);
 }
 
+#ifdef CONFIG_EFI_RUNTIME
 NOCROSSREFS_FROM(.efi_runtime.text)
 NOCROSSREFS_FROM(.efi_runtime.data)
+#endif

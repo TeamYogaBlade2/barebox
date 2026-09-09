@@ -1,0 +1,104 @@
+// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+/*
+ * Barebox DTS for Lenovo YOGA Tablet 10 (Wi-Fi) - MT6589 second-stage image.
+ *
+ * Preloader + LK have already initialised DRAM and the display framebuffer
+ * before barebox starts, so this DTS only needs the devices barebox uses
+ * directly (timer, watchdog, eMMC, USB, display log).
+ *
+ * Copyright (c) 2026 Akari Tsuyukusa <akkun11.open@gmail.com>
+ */
+
+/dts-v1/;
+#include "mt6589.dtsi"
+#include <dt-bindings/clock/mediatek,mt6589-clk.h>
+
+/ {
+	model = "Lenovo YOGA Tablet 10 (Wi-Fi)";
+	compatible = "lenovo,b8000-f", "mediatek,mt6589";
+
+	memory@80000000 {
+		device_type = "memory";
+		/* 1 GB LPDDR2 */
+		reg = <0x80000000 0x40000000>;
+	};
+
+	/*
+	 * Reuse the framebuffer LK left behind for barebox log output.
+	 * No DRM driver required - simple-framebuffer just writes pixels.
+	 */
+	framebuffer@bf600000 {
+		compatible = "simple-framebuffer";
+		reg = <0xbf600000 0x200000>;
+		width = <1280>;
+		height = <800>;
+		stride = <2560>;	/* 1280 * 2 bytes (RGB565) */
+		format = "r5g6b5";
+		status = "okay";
+	};
+
+	chosen {
+		environment {
+			compatible = "barebox,environment";
+			device-path = "/chosen/environment-emmc";
+		};
+
+		environment-emmc {
+			device-path = &mmc0;
+			file-path = "barebox.env";
+		};
+	};
+};
+
+/* Watchdog: keep alive, 20-second timeout */
+&wdt {
+	status = "okay";
+};
+
+/* GPT clocksource at 13 MHz */
+&timer {
+	status = "okay";
+};
+
+/*
+ * eMMC (MSDC0) - 8-bit, non-removable, up to 50 MHz.
+ * Primary storage for kernel + dtb + environment.
+ */
+&mmc0 {
+	status = "okay";
+	bus-width = <8>;
+	non-removable;
+	no-sd;
+	no-sdio;
+	max-frequency = <50000000>;
+	clocks = <&pericfg CLK_PERI0_MSDC0>,
+		 <&infracfg CLK_INFRA_SMI>;
+	clock-names = "source", "hclk";
+};
+
+/*
+ * SD card (MSDC1) - optional, 4-bit.
+ */
+&mmc1 {
+	status = "disabled";
+	bus-width = <4>;
+	max-frequency = <50000000>;
+	clocks = <&pericfg CLK_PERI0_MSDC1>,
+		 <&infracfg CLK_INFRA_SMI>;
+	clock-names = "source", "hclk";
+};
+
+/*
+ * USB OTG (MUSB).
+ * Used for Fastboot / DFU when the device is connected to a host.
+ */
+&usb0 {
+	status = "okay";
+	clocks = <&pericfg CLK_PERI0_USB0>;
+	clock-names = "usb0";
+};
+
+/* UART0 - not physically accessible on this tablet, disabled */
+&uart0 {
+	status = "disabled";
+};
