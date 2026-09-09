@@ -30,3 +30,11 @@ config USB_MUSB_GADGET
 	  Select this when you want to use MUSB in gadget mode.
 
 endif
+
+config USB_MUSB_MEDIATEK
+	bool "MediaTek MUSB support"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+	select USB_MUSB
+	select GENERIC_PHY
+	help
+	  Minimal MediaTek MUSB glue for MT6589 secondary bootloader.

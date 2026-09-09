@@ -49,3 +49,10 @@ config PHY_STM32_USBPHYC
 	  selected by a USB switch.
 
 endif
+
+config PHY_MTK_TPHY
+	bool "MediaTek T-PHY"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+	select GENERIC_PHY
+	help
+	  Minimal MediaTek T-PHY support for USB2 on MT6589.
