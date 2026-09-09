@@ -1,12 +1,26 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Minimal MediaTek power domains for MT6589 */
+/*
+ * MediaTek SCPSYS power domains (minimal) for MT6589
+ */
+
 #include <common.h>
 #include <init.h>
 #include <of_device.h>
+#include <io.h>
 
 static int mtk_pmdomain_probe(struct device *dev)
 {
-	dev_info(dev, "MTK power domains (minimal) probed\n");
+	struct resource *res;
+	void __iomem *base = NULL;
+
+	res = dev_get_resource(dev, IORESOURCE_MEM, 0);
+	if (!IS_ERR(res))
+		base = IOMEM(res->start);
+
+	/* For secondary bootloader most domains are already on.
+	 * Just acknowledge the node.
+	 */
+	dev_info(dev, "MTK power domains registered (base %p)\n", base);
 	return 0;
 }
 
