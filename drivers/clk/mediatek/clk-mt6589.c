@@ -133,6 +133,16 @@ static int mt6589_apmixed_probe(struct device *dev)
 /* ---- TOPCKGEN ---- */
 static int mt6589_topckgen_probe(struct device *dev)
 {
+	void __iomem *base;
+	struct resource *res;
+	struct clk *c;
+
+	res = dev_get_resource(dev, IORESOURCE_MEM, 0);
+	if (IS_ERR(res))
+		return PTR_ERR(res);
+	base = IOMEM(res->start);
+
+	/* base oscillators + PLL factors (rates after LK) */
 	clk_fixed("clk26m", 26000000);
 	clk_fixed("clk32k", 32000);
 	clk_fixed("clk13m", 13000000);
@@ -169,24 +179,51 @@ static int mt6589_topckgen_probe(struct device *dev)
 
 	reg_fixed(CLK_TOP_MMPLL_D4, "mmpll_d4", 225000000);
 	reg_fixed(CLK_TOP_MMPLL_D6, "mmpll_d6", 150000000);
+	reg_fixed(-1, "msdcpll_208m", 208000000);
+	reg_fixed(-1, "lvdspll_ck", 180000000);
 
-	/* approximated mux outputs */
-	clk_fixed("axi_sel", 268666666);
-	clk_fixed("usb20_sel", 48000000);
-	clk_fixed("msdc0_sel", 208000000);
-	clk_fixed("msdc1_sel", 208000000);
-	clk_fixed("msdc2_sel", 208000000);
-	clk_fixed("msdc3_sel", 208000000);
-	clk_fixed("msdc4_sel", 208000000);
-	clk_fixed("uart_sel", 26000000);
-	clk_fixed("spi_sel", 104000000);
+	/* Real muxes on CLK_CFG_* (register control) */
+	{
+		static const char * const axi_p[] = {
+			"clk26m", "syspll_d3", "syspll_d4", "syspll_d6",
+			"univpll_d5", "univpll2_d2", "syspll_d3p5",
+		};
+		static const char * const usb_p[] = {
+			"clk26m", "univpll2_d6", "univpll1_d10",
+		};
+		static const char * const msdc_p[] = {
+			"clk26m", "syspll_d6", "syspll_d5", "univpll1_d4",
+			"univpll2_d4", "msdcpll_208m",
+		};
+		static const char * const uart_p[] = {
+			"clk26m", "univpll2_d8",
+		};
+		static const char * const spi_p[] = {
+			"clk26m", "syspll_d3", "syspll_d4", "syspll_d6",
+			"univpll_d5", "univpll1_d4", "univpll2_d4", "univpll1_d8",
+		};
+
+		/* CLK_CFG_0 @ 0x40 */
+		c = clk_mux("axi_sel", 0, base + 0x40, 0, 3, axi_p, ARRAY_SIZE(axi_p), 0);
+		/* CLK_CFG_2 @ 0x48: msdc1/2/3/4 */
+		c = clk_mux("msdc1_sel", 0, base + 0x48, 0, 3, msdc_p, ARRAY_SIZE(msdc_p), 0);
+		c = clk_mux("msdc2_sel", 0, base + 0x48, 8, 3, msdc_p, ARRAY_SIZE(msdc_p), 0);
+		c = clk_mux("msdc3_sel", 0, base + 0x48, 16, 3, msdc_p, ARRAY_SIZE(msdc_p), 0);
+		c = clk_mux("msdc4_sel", 0, base + 0x48, 24, 3, msdc_p, ARRAY_SIZE(msdc_p), 0);
+		/* CLK_CFG_3 @ 0x4c: usb20 */
+		c = clk_mux("usb20_sel", 0, base + 0x4c, 0, 2, usb_p, ARRAY_SIZE(usb_p), 0);
+		/* CLK_CFG_4 @ 0x50: spi, uart */
+		c = clk_mux("spi_sel", 0, base + 0x50, 16, 3, spi_p, ARRAY_SIZE(spi_p), 0);
+		c = clk_mux("uart_sel", 0, base + 0x50, 24, 2, uart_p, ARRAY_SIZE(uart_p), 0);
+		/* CLK_CFG_8 @ 0x64: msdc0 */
+		c = clk_mux("msdc0_sel", 0, base + 0x64, 8, 3, msdc_p, ARRAY_SIZE(msdc_p), 0);
+	}
 
 	of_clk_add_provider(dev->of_node, of_clk_src_onecell_get, &clk_data);
-	dev_info(dev, "MT6589 topckgen clocks registered\n");
+	dev_info(dev, "MT6589 topckgen: factors + real muxes at %p\n", base);
 	return 0;
 }
 
-/* ---- PERI gates (real SET/CLR) ---- */
 #define PERI_PDN0_SET	0x0008
 #define PERI_PDN0_CLR	0x0010
 #define PERI_PDN0_STA	0x0018
