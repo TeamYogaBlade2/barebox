@@ -363,6 +363,26 @@ config BOARD_ARM_GENERIC_DT
 	  in r2 like the Kernel does, so it could be used anywhere where a Kernel
 	  image could be used. The image will be called images/barebox-dt-2nd.img
 
+config ARM_APPENDED_DTB
+	bool "Append DTB to barebox-dt-2nd.img"
+	depends on BOARD_ARM_GENERIC_DT
+	help
+	  Like Linux CONFIG_ARM_APPENDED_DTB: append a Device Tree Blob to the
+	  end of images/barebox-dt-2nd.img. At boot, if r2 does not point to a
+	  valid FDT, start_dt_2nd looks for an FDT right after the image in
+	  memory. This allows primary bootloaders that cannot pass a DTB
+	  (only load a single binary) to still start barebox.
+
+	  Select the DTB with ARM_APPENDED_DTB_NAME.
+
+config ARM_APPENDED_DTB_NAME
+	string "DTB to append (relative to dts/src/arm/)"
+	depends on ARM_APPENDED_DTB
+	default "mediatek/mt6589-lenovo-b8000-f.dtb"
+	help
+	  Path relative to dts/src/arm/ of the .dtb to build and append.
+	  Example: mediatek/mt6589-lenovo-b8000-f.dtb
+
 config BOARD_ARM_GENERIC_DT_AARCH64
 	bool
 	depends on CPU_V8
