@@ -29,4 +29,4 @@ obj-$(CONFIG_MFD_PCA9450)	+= pca9450.o
 obj-$(CONFIG_MFD_TPS65219)	+= tps65219.o
 obj-$(CONFIG_MFD_HGS_EFI)	+= hgs-efi.o
 obj-$(CONFIG_MFD_MTK_PWRAP) += mtk-pwrap.o
-obj-$(CONFIG_MFD_MTK_PWRAP) += mtk-pwrap.o
+obj-$(CONFIG_MFD_MT6320) += mt6320.o

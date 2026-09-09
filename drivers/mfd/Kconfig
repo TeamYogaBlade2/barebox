@@ -167,8 +167,20 @@ config MFD_HGS_EFI
 	  (EFI) Co-Processor device found on several devices in the System1600
 	  platform.
 
-endmenu
 
 config MFD_MTK_PWRAP
 	bool "MediaTek PWRAP"
 	depends on ARCH_MEDIATEK || COMPILE_TEST
+	select REGMAP
+	help
+	  MediaTek PMIC wrapper (WACS2 access to MT6320 etc).
+
+config MFD_MT6320
+	bool "MediaTek MT6320 PMIC"
+	depends on MFD_MTK_PWRAP
+	select REGMAP
+	help
+	  Core MFD driver for the MT6320 PMIC found with MT6589.
+
+endmenu
+
