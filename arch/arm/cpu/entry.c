@@ -36,8 +36,19 @@ void __noreturn __barebox_arm_entry(unsigned long membase,
 				    void *boarddata,
 				    unsigned long sp);
 
+/*
+ * Clang does not support non-ASM statements in naked functions.
+ * Secondary loaders already have a usable stack from the primary BL,
+ * so omitting __naked is fine for Clang. GCC keeps __naked to avoid
+ * any reliance on the incoming SP.
+ */
+#if defined(__clang__)
+void __noreturn barebox_arm_entry(unsigned long membase,
+				  unsigned long memsize, void *boarddata)
+#else
 void NAKED __noreturn barebox_arm_entry(unsigned long membase,
 					unsigned long memsize, void *boarddata)
+#endif
 {
 	__barebox_arm_entry(membase, memsize, boarddata,
 			    arm_mem_stack_top(membase + memsize));
