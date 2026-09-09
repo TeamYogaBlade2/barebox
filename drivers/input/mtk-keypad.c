@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
  * MediaTek keypad (mt6779 compatible) for barebox secondary bootloader
- * Minimal: registers input device and enables the controller.
- * Full matrix scanning / IRQ can be added later.
  */
 
 #include <common.h>
@@ -12,11 +10,13 @@
 #include <linux/clk.h>
 #include <linux/err.h>
 #include <input/input.h>
-#include <input/matrix_keypad.h>
 #include <poller.h>
+#include <linux/bitops.h>
 
-#define MTK_KPD_SEL		0x0020
+#define MTK_KPD_MEM		0x0004
 #define MTK_KPD_DEBOUNCE	0x0018
+#define MTK_KPD_SEL		0x0020
+#define MTK_KPD_NUM_MEMS	5
 
 struct mtk_keypad {
 	void __iomem *base;
@@ -25,18 +25,35 @@ struct mtk_keypad {
 	struct poller_struct poller;
 	u32 n_rows;
 	u32 n_cols;
+	u32 last_state[MTK_KPD_NUM_MEMS];
 };
 
 static void mtk_keypad_poll(struct poller_struct *poller)
 {
-	/* Placeholder: full scan would read MEM registers and report keys */
+	struct mtk_keypad *kp = container_of(poller, struct mtk_keypad, poller);
+	u32 state[MTK_KPD_NUM_MEMS];
+	int i;
+
+	if (!kp->base)
+		return;
+
+	for (i = 0; i < MTK_KPD_NUM_MEMS; i++)
+		state[i] = readl(kp->base + MTK_KPD_MEM + i * 4);
+
+	/* Simple change detection - full keycode mapping deferred */
+	for (i = 0; i < MTK_KPD_NUM_MEMS; i++) {
+		if (state[i] != kp->last_state[i]) {
+			/* key event occurred; for now just keep state */
+			kp->last_state[i] = state[i];
+		}
+	}
 }
 
 static int mtk_keypad_probe(struct device *dev)
 {
 	struct mtk_keypad *kp;
 	struct resource *res;
-	int ret;
+	int ret, i;
 
 	kp = xzalloc(sizeof(*kp));
 
@@ -56,10 +73,10 @@ static int mtk_keypad_probe(struct device *dev)
 	if (!kp->n_cols)
 		kp->n_cols = 3;
 
-	/* Basic enable */
 	if (kp->base) {
-		writel(0x1fff, kp->base + MTK_KPD_DEBOUNCE); /* max debounce */
-		/* leave SEL as default / already set by LK */
+		writel(0x1fff, kp->base + MTK_KPD_DEBOUNCE);
+		for (i = 0; i < MTK_KPD_NUM_MEMS; i++)
+			kp->last_state[i] = readl(kp->base + MTK_KPD_MEM + i * 4);
 	}
 
 	kp->input.parent = dev;
