@@ -255,22 +255,45 @@ void __barebox_arm64_head(ulong x0, ulong x1, ulong x2);
 		(ulong arg0, ulong arg1, ulong arg2)
 
 /*
- * Clang rejects C statements inside __naked functions. For Clang we
- * omit naked; the primary bootloader must provide a stack (true for
- * secondary loaders such as start_dt_2nd). GCC keeps __naked.
+ * Clang forbids non-ASM statements in __naked functions. Keep __naked
+ * (required when BootROM left SP invalid) and use a pure-assembly
+ * trampoline: embed the same header as __barebox_arm_head, then branch
+ * to the C body with r0-r2 preserved. See barebox#45 discussion.
+ *
+ * GCC keeps the classic naked+C form.
  */
 #if defined(__clang__)
 #define __ENTRY_FUNCTION_HEAD(name, head, arg0, arg1, arg2)		\
 	void name(ulong r0, ulong r1, ulong r2);			\
 									\
-	static void __##name(ulong, ulong, ulong);			\
+	static void noinline __##name(ulong, ulong, ulong);		\
 									\
-	void __section(.text_head_entry_##name)	name			\
+	void __naked __section(.text_head_entry_##name)	name		\
 				(ulong r0, ulong r1, ulong r2)		\
-		{							\
-			head();						\
-			__##name(r0, r1, r2);				\
-		}							\
+	{								\
+		__asm__ __volatile__(					\
+			"b	2f\n"					\
+			"1:	b	1b\n"				\
+			"1:	b	1b\n"				\
+			"1:	b	1b\n"				\
+			"1:	b	1b\n"				\
+			"1:	b	1b\n"				\
+			"1:	b	1b\n"				\
+			"1:	b	1b\n"				\
+			".asciz	\"barebox\"\n"				\
+			".balign	4\n"				\
+			".word	_text\n"				\
+			".word	_barebox_image_size\n"			\
+			".rept	8\n"					\
+			".word	0x55555555\n"				\
+			".endr\n"					\
+			"2:\n"						\
+			"b	%c0\n"					\
+			:						\
+			: "i"(__##name)					\
+			: "memory"					\
+		);							\
+	}								\
 	static void noinline __##name					\
 		(ulong arg0, ulong arg1, ulong arg2)
 #else
