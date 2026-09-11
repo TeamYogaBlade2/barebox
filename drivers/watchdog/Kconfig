@@ -205,3 +205,10 @@ config HGS_EFI_WATCHDOG
 	  If unsure, say N.
 
 endif
+
+config WATCHDOG_MTK
+	bool "MediaTek Watchdog"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+	help
+	  Support for the MediaTek watchdog (kick-only for secondary
+	  bootloader use on MT6589 etc).

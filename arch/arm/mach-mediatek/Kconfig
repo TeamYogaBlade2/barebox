@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+if ARCH_MEDIATEK
+
+config ARCH_MT6589
+	bool "MediaTek MT6589"
+	select CPU_V7
+	help
+	  Support for MediaTek MT6589 SoC (used as secondary bootloader after
+	  preloader/LK which initializes DRAM and framebuffer).
+
+endif

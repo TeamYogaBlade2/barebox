@@ -92,3 +92,7 @@ config VIRTIO_INPUT
 	 This driver supports virtio keyboard input devices.
 
 endmenu
+config KEYBOARD_MTK
+	bool "MediaTek keypad"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+	select INPUT

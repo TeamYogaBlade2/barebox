@@ -18,3 +18,4 @@ obj-$(CONFIG_PINCTRL_OCELOT) += pinctrl-ocelot.o
 
 obj-$(CONFIG_ARCH_MVEBU) += mvebu/
 obj-$(CONFIG_ARCH_SUNXI) += sunxi/
+obj-$(CONFIG_PINCTRL_MT6589) += pinctrl-mt6589.o

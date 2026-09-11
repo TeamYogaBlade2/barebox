@@ -125,3 +125,10 @@ source "drivers/pinctrl/sunxi/Kconfig"
 endif
 
 endmenu
+
+config PINCTRL_MT6589
+	bool "MediaTek MT6589 pinctrl"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+	select PINCTRL
+	help
+	  Minimal pinctrl/gpio for MT6589.

@@ -52,6 +52,14 @@ config CLOCKSOURCE_KVX
 	bool "KVX core timer clocksource"
 	depends on KVX
 
+config CLOCKSOURCE_MEDIATEK
+	bool "MediaTek GPT clocksource"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+	help
+	  Support for the MediaTek General-Purpose Timer (GPT) block used
+	  on MT6589 and related SoCs. Provides a 32-bit free-running
+	  clocksource at 13 MHz.
+
 config CLOCKSOURCE_MVEBU
 	bool "MVEBU clock source" if COMPILE_TEST
 	depends on ARCH_MVEBU || COMPILE_TEST
