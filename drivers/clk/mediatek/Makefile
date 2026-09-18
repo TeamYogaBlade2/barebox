@@ -7,6 +7,9 @@ obj-$(CONFIG_COMMON_CLK_MT8183) += clk-mt8183.o clk-mt8183-apmixedsys.o \
 obj-$(CONFIG_COMMON_CLK_MT8186) += clk-mt8186-apmixedsys.o clk-mt8186-topckgen.o \
 				   clk-mt8186-infra_ao.o
 
+obj-$(CONFIG_COMMON_CLK_MT8188) += clk-mt8188-apmixedsys.o clk-mt8188-topckgen.o \
+				   clk-mt8188-infra_ao.o
+
 obj-$(CONFIG_COMMON_CLK_MT8192) += clk-mt8192.o clk-mt8192-apmixedsys.o \
                                        clk-mt8192-msdc.o
 
