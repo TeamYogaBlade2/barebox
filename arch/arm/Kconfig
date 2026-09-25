@@ -376,12 +376,12 @@ config ARM_APPENDED_DTB
 	  Select the DTB with ARM_APPENDED_DTB_NAME.
 
 config ARM_APPENDED_DTB_NAME
-	string "DTB to append (relative to dts/src/arm/)"
+	string "DTB to append (relative to arch/arm/dts/)"
 	depends on ARM_APPENDED_DTB
-	default "mediatek/mt6589-lenovo-b8000-f.dtb"
+	default "mt6589-lenovo-b8000-f.dtb"
 	help
-	  Path relative to dts/src/arm/ of the .dtb to build and append.
-	  Example: mediatek/mt6589-lenovo-b8000-f.dtb
+	  Path relative to arch/arm/dts/ of the .dtb to build and append.
+	  Example: mt6589-lenovo-b8000-f.dtb
 
 config BOARD_ARM_GENERIC_DT_AARCH64
 	bool

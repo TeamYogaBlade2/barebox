@@ -208,22 +208,19 @@ image-$(CONFIG_BOARD_GENERIC_DT) += barebox-dt-2nd.img
 
 ifdef CONFIG_ARM_APPENDED_DTB
 # Produce barebox-dt-2nd.img as pblb + DTB (Linux APPENDED_DTB style).
-# Override FILE_ so the generic %.img copy rule uses our combined blob.
+# Reuse the normal arch/arm/dts DTB build instead of compiling a second
+# copy here. This also preserves the dependency handling for included
+# .dtsi files.
 FILE_barebox-dt-2nd.img = start_dt_2nd-appended.img
 
-APPENDED_DTB_DTS = $(srctree)/dts/src/arm/$(patsubst %.dtb,%.dts,$(CONFIG_ARM_APPENDED_DTB_NAME))
-APPENDED_DTB = $(obj)/appended.dtb
+APPENDED_DTB = $(objtree)/arch/$(SRCARCH)/dts/$(CONFIG_ARM_APPENDED_DTB_NAME)
 
-quiet_cmd_appended_dtb = DTC     $@
-      cmd_appended_dtb = $(CPP) -nostdinc -I$(srctree)/dts/include -I$(srctree)/include \
-		-I$(srctree)/dts/src/arm -I$(srctree)/include \
-		-undef -D__DTS__ -x assembler-with-cpp $(APPENDED_DTB_DTS) | \
-		$(objtree)/scripts/dtc/dtc -O dtb -o $@ -b 0 \
-		-i $(srctree)/dts/src/arm -i $(dir $(APPENDED_DTB_DTS)) \
-		$(DTC_FLAGS)
+quiet_cmd_build_appended_dtb = DTBS    $(CONFIG_ARM_APPENDED_DTB_NAME)
+      cmd_build_appended_dtb = $(MAKE) $(build)=arch/$(SRCARCH)/dts \
+		arch/$(SRCARCH)/dts/$(CONFIG_ARM_APPENDED_DTB_NAME)
 
-$(APPENDED_DTB): $(APPENDED_DTB_DTS) $(objtree)/scripts/dtc/dtc FORCE
-	$(call if_changed,appended_dtb)
+$(APPENDED_DTB): FORCE
+	$(call if_changed,build_appended_dtb)
 
 quiet_cmd_append_dtb = APPEND  $@
       cmd_append_dtb = cat $(obj)/start_dt_2nd.pblb $(APPENDED_DTB) > $@
@@ -231,7 +228,7 @@ quiet_cmd_append_dtb = APPEND  $@
 $(obj)/start_dt_2nd-appended.img: $(obj)/start_dt_2nd.pblb $(APPENDED_DTB) FORCE
 	$(call if_changed,append_dtb)
 
-targets += appended.dtb start_dt_2nd-appended.img
+targets += start_dt_2nd-appended.img
 endif
 
 fit-image = barebox-$(CONFIG_ARCH_LINUX_NAME).fit
