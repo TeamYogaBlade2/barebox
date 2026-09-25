@@ -61,15 +61,6 @@ static u16 mtk_musb_clearw(void __iomem *addr, unsigned int offset)
 	return data;
 }
 
-/*
- * MediaTek places EP function-address registers at a non-standard offset.
- * Exposed for future use when barebox musb core gains busctl_offset support.
- */
-static u32 mtk_musb_busctl_offset(u8 epnum, u16 offset)
-{
-	return MTK_MUSB_TXFUNCADDR + offset + 8 * epnum;
-}
-
 static int mtk_musb_interrupt(struct musb *musb)
 {
 	u32 l1_ints;
