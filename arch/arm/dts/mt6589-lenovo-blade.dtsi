@@ -458,7 +458,3 @@
 &pwm {
 	status = "okay";
 };
-
-&bls {
-	status = "okay";
-};
