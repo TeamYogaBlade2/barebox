@@ -183,4 +183,3 @@ config MFD_MT6320
 	  Core MFD driver for the MT6320 PMIC found with MT6589.
 
 endmenu
-
