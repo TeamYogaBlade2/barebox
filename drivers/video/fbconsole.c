@@ -938,6 +938,7 @@ static int fbc_open(struct console_device *cdev, unsigned activate)
 		return PTR_ERR(priv->sc);
 
 	fb_enable(fb);
+	cls(priv);
 
 	priv->state = LIT;
 
