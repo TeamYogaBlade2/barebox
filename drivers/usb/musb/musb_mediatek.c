@@ -10,6 +10,7 @@
 #include <malloc.h>
 #include <linux/clk.h>
 #include <linux/err.h>
+#include <linux/reset.h>
 #include <of_device.h>
 #include <linux/phy/phy.h>
 #include <linux/usb/musb.h>
@@ -30,7 +31,9 @@
 #define TX_INT_STATUS		BIT(0)
 #define RX_INT_STATUS		BIT(1)
 #define USBCOM_INT_STATUS	BIT(2)
-#define DMA_INT_STATUS		BIT(3)
+
+#define MTK_MUSB_L1INT_MASK	(TX_INT_STATUS | RX_INT_STATUS | \
+				 USBCOM_INT_STATUS)
 
 #define MTK_MUSB_CLKS_NUM	3
 
@@ -40,6 +43,7 @@ struct mtk_glue {
 	struct musb_hdrc_platform_data pdata;
 	struct musb_hdrc_config config;
 	struct clk_bulk_data clks[MTK_MUSB_CLKS_NUM];
+	struct reset_control *rstc;
 	struct phy *phy;
 	enum phy_mode phy_mode;
 };
@@ -101,14 +105,16 @@ static int mtk_musb_init(struct musb *musb)
 			phy_exit(glue->phy);
 			return ret;
 		}
-		if (glue->phy_mode)
-			phy_set_mode(glue->phy, glue->phy_mode);
+		ret = phy_set_mode(glue->phy, glue->phy_mode);
+		if (ret) {
+			phy_power_off(glue->phy);
+			phy_exit(glue->phy);
+			return ret;
+		}
 	}
 
-	/* Unmask L1 interrupts */
-	musb_writel(musb->mregs, USB_L1INTM,
-		    TX_INT_STATUS | RX_INT_STATUS |
-		    USBCOM_INT_STATUS | DMA_INT_STATUS);
+	/* DMA has no barebox backend, so don't unmask the DMA L1 source. */
+	musb_writel(musb->mregs, USB_L1INTM, MTK_MUSB_L1INT_MASK);
 
 	return 0;
 }
@@ -122,14 +128,14 @@ static int mtk_musb_exit(struct musb *musb)
 		phy_power_off(glue->phy);
 		phy_exit(glue->phy);
 	}
+	if (glue->rstc)
+		reset_control_assert(glue->rstc);
 	return 0;
 }
 
 static void mtk_musb_enable(struct musb *musb)
 {
-	musb_writel(musb->mregs, USB_L1INTM,
-		    TX_INT_STATUS | RX_INT_STATUS |
-		    USBCOM_INT_STATUS | DMA_INT_STATUS);
+	musb_writel(musb->mregs, USB_L1INTM, MTK_MUSB_L1INT_MASK);
 }
 
 static void mtk_musb_disable(struct musb *musb)
@@ -142,6 +148,26 @@ static struct musb_platform_ops mtk_ops = {
 	.exit		= mtk_musb_exit,
 	.enable		= mtk_musb_enable,
 	.disable	= mtk_musb_disable,
+};
+
+#define MTK_MUSB_MAX_EP_NUM	8
+#define MTK_MUSB_RAM_BITS	11
+
+static struct musb_fifo_cfg mtk_musb_mode_cfg[] = {
+	{ .hw_ep_num = 1, .style = FIFO_TX, .maxpacket = 512, },
+	{ .hw_ep_num = 1, .style = FIFO_RX, .maxpacket = 512, },
+	{ .hw_ep_num = 2, .style = FIFO_TX, .maxpacket = 512, },
+	{ .hw_ep_num = 2, .style = FIFO_RX, .maxpacket = 512, },
+	{ .hw_ep_num = 3, .style = FIFO_TX, .maxpacket = 512, },
+	{ .hw_ep_num = 3, .style = FIFO_RX, .maxpacket = 512, },
+	{ .hw_ep_num = 4, .style = FIFO_TX, .maxpacket = 512, },
+	{ .hw_ep_num = 4, .style = FIFO_RX, .maxpacket = 512, },
+	{ .hw_ep_num = 5, .style = FIFO_TX, .maxpacket = 512, },
+	{ .hw_ep_num = 5, .style = FIFO_RX, .maxpacket = 512, },
+	{ .hw_ep_num = 6, .style = FIFO_TX, .maxpacket = 1024, },
+	{ .hw_ep_num = 6, .style = FIFO_RX, .maxpacket = 1024, },
+	{ .hw_ep_num = 7, .style = FIFO_TX, .maxpacket = 512, },
+	{ .hw_ep_num = 7, .style = FIFO_RX, .maxpacket = 64, },
 };
 
 static int get_musb_port_mode(struct device *dev)
@@ -185,22 +211,36 @@ static int mtk_musb_probe(struct device *dev)
 	glue->clks[1].id = "mcu";
 	glue->clks[2].id = "univpll";
 	ret = clk_bulk_get(dev, MTK_MUSB_CLKS_NUM, glue->clks);
-	if (!ret)
-		clk_bulk_enable(MTK_MUSB_CLKS_NUM, glue->clks);
-	else
-		dev_dbg(dev, "clocks not available yet: %d\n", ret);
+	if (ret)
+		goto err;
 
-	/* PHY */
-	glue->phy = of_phy_get_by_phandle(dev, "phys", 0);
+	ret = clk_bulk_enable(MTK_MUSB_CLKS_NUM, glue->clks);
+	if (ret)
+		goto err_clk_put;
+
+	glue->rstc = reset_control_get_optional(dev, "hrst");
+	if (IS_ERR(glue->rstc)) {
+		ret = PTR_ERR(glue->rstc);
+		goto err_clk_disable;
+	}
+
+	if (glue->rstc) {
+		ret = reset_control_reset(glue->rstc);
+		if (ret)
+			goto err_reset_put;
+	}
+
+	/* DT uses <&usb_port0 PHY_TYPE_USB2>, so preserve the phandle arg. */
+	glue->phy = phy_get_by_index(dev, 0);
 	if (IS_ERR(glue->phy)) {
-		dev_dbg(dev, "phy not ready: %pe\n", glue->phy);
-		glue->phy = NULL;
+		ret = PTR_ERR(glue->phy);
+		goto err_reset_put;
 	}
 
 	res = dev_request_mem_resource(dev, 0);
 	if (IS_ERR(res)) {
 		ret = PTR_ERR(res);
-		goto err;
+		goto err_reset_put;
 	}
 	glue->musb.mregs = IOMEM(res->start);
 	glue->musb.controller = dev;
@@ -212,9 +252,11 @@ static int mtk_musb_probe(struct device *dev)
 	pdata->platform_ops = &mtk_ops;
 	pdata->mode = get_musb_port_mode(dev);
 
-	/* Defaults suitable for MT6589 */
-	config->num_eps = 8;
-	config->ram_bits = 12;
+	/* Match Linux MT6589 MUSB FIFO layout and RAM size. */
+	config->fifo_cfg = mtk_musb_mode_cfg;
+	config->fifo_cfg_size = ARRAY_SIZE(mtk_musb_mode_cfg);
+	config->num_eps = MTK_MUSB_MAX_EP_NUM;
+	config->ram_bits = MTK_MUSB_RAM_BITS;
 	config->multipoint = 1;
 
 	switch (pdata->mode) {
@@ -240,6 +282,13 @@ static int mtk_musb_probe(struct device *dev)
 
 err_mem:
 	release_region(res);
+err_reset_put:
+	if (glue->rstc)
+		reset_control_put(glue->rstc);
+err_clk_disable:
+	clk_bulk_disable(MTK_MUSB_CLKS_NUM, glue->clks);
+err_clk_put:
+	clk_bulk_put(MTK_MUSB_CLKS_NUM, glue->clks);
 err:
 	free(glue);
 	return ret;
