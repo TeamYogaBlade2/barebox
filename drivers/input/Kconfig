@@ -52,6 +52,11 @@ config KEYBOARD_IMX_KEYPAD
 	  setup logic must also provide a 'matrix_keymap_data' structure,
 	  defining the used keys.
 
+config KEYBOARD_MTK
+	bool "MediaTek keypad"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+	select INPUT
+
 config KEYBOARD_QT1070
 	tristate "Atmel AT42QT1070 Touch Sensor Chip"
 	depends on I2C && GENERIC_GPIO
@@ -92,7 +97,3 @@ config VIRTIO_INPUT
 	 This driver supports virtio keyboard input devices.
 
 endmenu
-config KEYBOARD_MTK
-	bool "MediaTek keypad"
-	depends on ARCH_MEDIATEK || COMPILE_TEST
-	select INPUT

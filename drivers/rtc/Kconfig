@@ -73,11 +73,10 @@ config RTC_DRV_JZ4740
 	  If you say yes here you get support for the Ingenic JZ4740 SoC RTC
 	  controller.
 
-endif # RTC_CLASS
-
-config RTC_MT6320
+config RTC_DRV_MT6320
 	bool "MediaTek MT6320 RTC"
 	depends on MFD_MT6320 || COMPILE_TEST
-	select RTC_CLASS
 	help
 	  RTC inside the MT6320 PMIC (WACS via PWRAP).
+
+endif # RTC_CLASS
