@@ -157,6 +157,7 @@ static int simplefb_probe(struct device *dev)
 	info->fbops = &simplefb_ops;
 
 	info->dev.parent = dev;
+	info->dev.of_node = dev->of_node;
 
 	/*
 	 * Temporary bring-up marker:
