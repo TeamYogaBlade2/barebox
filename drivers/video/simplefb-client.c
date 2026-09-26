@@ -24,6 +24,34 @@ static struct fb_ops simplefb_ops;
 
 static struct simplefb_format simplefb_formats[] = SIMPLEFB_FORMATS;
 
+#ifdef CONFIG_ARCH_MT6589
+static void simplefb_mt6589_debug_fill(void __iomem *base,
+				       u32 width, u32 height,
+				       u32 stride, u16 color)
+{
+	volatile u32 __iomem *fb = base;
+	u32 packed = (u32)color | ((u32)color << 16);
+	unsigned int y, x;
+
+	for (y = 0; y < height; y++) {
+		volatile u32 __iomem *row =
+			(volatile u32 __iomem *)((u8 __iomem *)fb +
+						 y * stride);
+
+		for (x = 0; x < width / 2; x++)
+			row[x] = packed;
+	}
+
+	asm volatile("dsb sy" : : : "memory");
+}
+#else
+static inline void simplefb_mt6589_debug_fill(void __iomem *base,
+					      u32 width, u32 height,
+					      u32 stride, u16 color)
+{
+}
+#endif
+
 struct simplefb_params {
 	u32 width;
 	u32 height;
@@ -131,11 +159,27 @@ static int simplefb_probe(struct device *dev)
 	info->dev.parent = dev;
 	info->dev.of_node = dev->of_node;
 
+	/*
+	 * Temporary bring-up marker:
+	 * all simplefb setup completed and register_framebuffer() is next.
+	 */
+	simplefb_mt6589_debug_fill(info->screen_base,
+				   params.width, params.height,
+				   params.stride, 0xfd20); /* orange */
+
 	ret = register_framebuffer(info);
 	if (ret < 0) {
 		dev_err(dev, "Unable to register simplefb: %d\n", ret);
 		return ret;
 	}
+
+	/*
+	 * Temporary bring-up marker:
+	 * register_framebuffer() completed successfully.
+	 */
+	simplefb_mt6589_debug_fill(info->screen_base,
+				   params.width, params.height,
+				   params.stride, 0x8010); /* gray */
 
 	dev_info(dev, "size %s registered\n", size_human_readable(info->screen_size));
 
