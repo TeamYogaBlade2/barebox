@@ -196,7 +196,7 @@ static struct driver simplefb_driver = {
 	.of_compatible = simplefb_of_match,
 	.probe = simplefb_probe,
 };
-device_platform_driver(simplefb_driver);
+console_platform_driver(simplefb_driver);
 
 MODULE_AUTHOR("Stephen Warren <swarren@wwwdotorg.org>");
 MODULE_DESCRIPTION("Simple framebuffer driver");
