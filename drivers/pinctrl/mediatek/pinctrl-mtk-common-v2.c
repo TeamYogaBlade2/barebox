@@ -43,7 +43,7 @@ struct mtk_drive_desc {
 static const struct mtk_drive_desc mtk_drive[] = {
 	[DRV_GRP0] = { 4, 16, 4, 1 }, [DRV_GRP1] = { 4, 16, 4, 2 },
 	[DRV_GRP2] = { 2, 8, 2, 1 },  [DRV_GRP3] = { 2, 8, 2, 2 },
-	[DRV_GRP4] = { 2, 16, 2, 1 },
+	[DRV_GRP4] = { 2, 16, 2, 1 }, [DRV_GRP5] = { 4, 32, 4, 1 },
 };
 
 struct mtk_pinctrl *to_mtk_pinctrl(struct pinctrl_device *pdev)
