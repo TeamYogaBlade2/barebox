@@ -13,7 +13,11 @@
 #include <dt-bindings/clock/mediatek,mt6320-clk.h>
 
 / {
+	barebox,deep-probe;
+
 	chosen {
+		stdout-path = "/framebuffer@bf600000";
+
 		/* DEBUG: testing clock drivers */
 		bootargs = "clk_ignore_unused printk.always_kmsg_dump=1";
 	};
