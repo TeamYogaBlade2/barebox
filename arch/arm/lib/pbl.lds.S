@@ -135,12 +135,12 @@ SECTIONS
 		*(.piggydata)
 	}
 
-	. = ALIGN(4);
-	__pblext_start = .;
 	.pblext : {
+		. = ALIGN(4);
+		__pblext_start = .;
 		*(.pblext.*)
+		__pblext_end = .;
 	}
-	__pblext_end = .;
 
 	PECOFF_EDATA_PADDING
 
