@@ -135,12 +135,24 @@ SECTIONS
 		*(.piggydata)
 	}
 
+	. = ALIGN(4);
+	__pblext_start = .;
 	.pblext : {
-		. = ALIGN(4);
-		__pblext_start = .;
 		*(.pblext.*)
-		__pblext_end = .;
 	}
+	__pblext_end = .;
+
+#ifdef CONFIG_ARM_APPENDED_DTB
+	/*
+	 * Keep the PBL image end 64-bit aligned for appended DTBs.
+	 *
+	 * Linux's ARM appended-DTB implementation has the same requirement:
+	 * the linker, rather than the append command, makes the compressed
+	 * image file size a multiple of 8 bytes. The dummy byte is required
+	 * because ld may discard an otherwise empty output section.
+	 */
+	.pad : { BYTE(0); . = ALIGN(8); }
+#endif
 
 	PECOFF_EDATA_PADDING
 

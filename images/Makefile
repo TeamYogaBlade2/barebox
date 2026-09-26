@@ -224,9 +224,11 @@ quiet_cmd_append_dtb = APPEND  $@
       cmd_append_dtb = \
 		{ \
 			pbl_size=$$(wc -c < $(obj)/start_dt_2nd.pblb); \
-			pad=$$(( (8 - (pbl_size % 8)) % 8 )); \
+			if [ $$((pbl_size % 8)) -ne 0 ]; then \
+				echo "ERROR: start_dt_2nd.pblb is not 8-byte aligned ($$pbl_size bytes)" >&2; \
+				exit 1; \
+			fi; \
 			cat $(obj)/start_dt_2nd.pblb; \
-			dd if=/dev/zero bs=1 count=$$pad 2>/dev/null; \
 			cat $(APPENDED_DTB); \
 		} > $@
 
