@@ -2984,13 +2984,21 @@ int of_platform_device_create_root(struct device_node *np)
 	if (of_platform_root_device)
 		return 0;
 
+	if (np->dev) {
+		of_platform_root_device = np->dev;
+		return 0;
+	}
+
 	dev = xzalloc(sizeof(*dev));
 	dev->id = DEVICE_ID_SINGLE;
 	dev->of_node = np;
 	dev_set_name(dev, "machine");
 
+	np->dev = dev;
+
 	ret = platform_device_register(dev);
 	if (WARN_ON(ret)) {
+		np->dev = NULL;
 		free_device(dev);
 		return ret;
 	}
