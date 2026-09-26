@@ -74,6 +74,18 @@ static int mtk_wdt_ping(struct watchdog *wdd)
 	return 0;
 }
 
+static int mtk_wdt_disable(struct mtk_wdt *mtk)
+{
+	u32 mode;
+
+	mode = readl(mtk->base + WDT_MODE);
+	mode &= ~WDT_MODE_EN;
+	mode |= WDT_MODE_KEY;
+	writel(mode, mtk->base + WDT_MODE);
+
+	return 0;
+}
+
 static int mtk_wdt_probe(struct device *dev)
 {
 	struct mtk_wdt *mtk;
@@ -97,7 +109,8 @@ static int mtk_wdt_probe(struct device *dev)
 	mtk->wdd.set_timeout = mtk_wdt_set_timeout;
 	mtk->wdd.ping = mtk_wdt_ping;
 	mtk->wdd.priority = 100;
-	mtk->wdd.running = WDOG_HW_RUNNING_UNSUPPORTED;
+	mtk_wdt_disable(mtk);
+	mtk->wdd.running = WDOG_HW_NOT_RUNNING;
 
 	return watchdog_register(&mtk->wdd);
 }
