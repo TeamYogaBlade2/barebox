@@ -742,9 +742,17 @@ static dma_addr_t msdc_flush_membuf(const void *ptr, size_t size, enum dma_data_
 	dma_addr_t addr = (dma_addr_t)ptr;
 
 	if (dir == DMA_FROM_DEVICE)
+#ifdef CONFIG_CPU_64
 		v8_inv_dcache_range(addr, addr + size);
+#else
+		v7_dma_inv_range(addr, addr + size);
+#endif
 	else
+#ifdef CONFIG_CPU_64
 		v8_flush_dcache_range(addr, addr + size);
+#else
+		v7_dma_flush_range(addr, addr + size);
+#endif
 
 	return addr;
 }
@@ -835,7 +843,11 @@ static int msdc_dma_transfer(struct msdc_host *host, struct mci_data *data)
 	 * cache-refill during the DMA operations (pre-fetching)
 	 */
 	if (data->flags & MMC_DATA_READ)
+#ifdef CONFIG_CPU_64
 		v8_inv_dcache_range(dma_addr, dma_addr + size);
+#else
+		v7_dma_inv_range(dma_addr, dma_addr + size);
+#endif
 
 	return msdc_dma_done(host, status);
 }
