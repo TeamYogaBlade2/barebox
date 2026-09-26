@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0
 VERSION = 2026
-PATCHLEVEL = 08
+PATCHLEVEL = 09
 SUBLEVEL = 0
 EXTRAVERSION =
 NAME = None
@@ -1448,6 +1448,14 @@ ifneq ($(dtstree),)
 %.dtbo: dtbs_prepare
 	$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/$@
 
+# Build an upstream device tree by name, e.g.
+#   make dts/src/arm/st/stm32mp157c-dk2.dtb
+dts/src/%.dtb: dtbs_prepare
+	$(Q)$(MAKE) $(build)=dts/src $@
+
+dts/src/%.dtbo: dtbs_prepare
+	$(Q)$(MAKE) $(build)=dts/src $@
+
 PHONY += dtbs dtbs_prepare dtbs_install
 dtbs: dtbs_prepare
 	$(Q)$(MAKE) $(build)=$(dtstree) need-dtbslist=1
@@ -1640,6 +1648,7 @@ endif
 		echo 'Devicetree:'; \
 		echo '* dtbs               - Build device tree blobs for enabled boards'; \
 		echo '  dtbs_install       - Install dtbs to $(INSTALL_DTBS_PATH)'; \
+		echo '  dts/src/PATH.dtb   - Build a device tree of the dts/ subtree'; \
 		echo '')
 	@echo  'Architecture-specific targets ($(SRCARCH)):'
 	@$(or $(archhelp),\
@@ -1825,7 +1834,6 @@ prepare: outputmakefile
 # Error messages still appears in the original language
 PHONY += $(build-dir)
 $(build-dir): prepare
-	@find $(objtree)/$@ -name policy-list -exec rm -f {} \; 2>/dev/null || true
 	$(Q)$(MAKE) $(build)=$@ need-builtin=1 need-modorder=1 $(single-goals) \
 		$(if $(CONFIG_PBL_IMAGE),need-pbl=1)
 

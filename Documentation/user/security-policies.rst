@@ -42,7 +42,7 @@ Usage
    (i.e., with the ``security/`` prefix) are added to
    ``CONFIG_SECURITY_POLICY_PATH``.
 
-   Alternatively, policies can also be be referenced in a board's
+   Alternatively, policies can also be referenced in a board's
    Makefile:
 
    .. code-block:: make
@@ -66,8 +66,8 @@ Usage
 
      #include <security/policy.h>
 
-     security_policy_add(myboard_lockdown)
-     security_policy_add(myboard_devel)
+     security_policy_add(myboard_lockdown);
+     security_policy_add(myboard_devel);
 
 5. **Runtime selection**:
 

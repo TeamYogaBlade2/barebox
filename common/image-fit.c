@@ -36,6 +36,18 @@
 
 static LIST_HEAD(open_fits);
 
+static struct device_node *fit_get_child_by_name_exact(const struct device_node *node,
+						       const char *name)
+{
+	struct device_node *child;
+
+	for_each_child_of_node(node, child)
+		if (child->name && (strcmp(child->name, name) == 0))
+			return child;
+
+	return NULL;
+}
+
 static uint32_t dt_struct_advance(struct fdt_header *f, uint32_t dt, int size)
 {
 	dt += size;
@@ -57,7 +69,7 @@ static char *dt_string(struct fdt_header *f, char *strstart, uint32_t ofs)
 
 static int fit_digest(struct fit_handle *handle, struct digest *digest,
 		      struct string_list *inc_nodes, struct string_list *exc_props,
-		      uint32_t hashed_strings_start, uint32_t hashed_strings_size)
+		      uint32_t hashed_strings_size)
 {
 	const struct fdt_header *fdt = handle->fit;
 	const void *fit = handle->fit;
@@ -78,9 +90,7 @@ static int fit_digest(struct fit_handle *handle, struct digest *digest,
 	f.off_dt_strings = fdt32_to_cpu(fdt->off_dt_strings);
 	f.size_dt_strings = fdt32_to_cpu(fdt->size_dt_strings);
 
-	if (hashed_strings_start > f.size_dt_strings ||
-	    hashed_strings_size > f.size_dt_strings ||
-	    hashed_strings_start + hashed_strings_size > f.size_dt_strings) {
+	if (hashed_strings_size > f.size_dt_strings) {
 		pr_err("%s: hashed-strings too large\n", __func__);
 		return -EINVAL;
 	}
@@ -201,8 +211,8 @@ static int fit_digest(struct fit_handle *handle, struct digest *digest,
 	pr_debug("region: 0x%p+0x%x\n", fit + start, dt_struct - start);
 	digest_update(digest, fit + start, dt_struct - start);
 
-	pr_debug("strings: 0x%p+0x%x\n", dt_strings+hashed_strings_start, hashed_strings_size);
-	digest_update(digest, dt_strings + hashed_strings_start, hashed_strings_size);
+	pr_debug("strings: 0x%p+0x%x\n", dt_strings, hashed_strings_size);
+	digest_update(digest, dt_strings, hashed_strings_size);
 
 	return 0;
 }
@@ -326,7 +336,15 @@ static int fit_config_build_hash_nodes(struct fit_handle *handle,
 		    !strcmp(prop->name, "default"))
 			continue;
 
+		/* permit neither empty properties, nor unterminated strings.
+		 * Should we choose to support e.g. the boolean load-only
+		 * property in future, we should handle it specially and
+		 * allow that only it can be empty and not all properties.
+		 */
 		count = of_property_count_strings(conf_node, prop->name);
+		if (count < 0)
+			return count;
+
 		for (i = 0; i < count; i++) {
 			if (of_property_read_string_index(conf_node, prop->name,
 							  i, &unit))
@@ -339,7 +357,7 @@ static int fit_config_build_hash_nodes(struct fit_handle *handle,
 			if (ret)
 				return ret;
 
-			image_node = of_get_child_by_name(handle->images, unit);
+			image_node = fit_get_child_by_name_exact(handle->images, unit);
 			if (!image_node)
 				return -EINVAL;
 
@@ -390,6 +408,41 @@ static void fit_config_check_hash_nodes(struct device_node *sig_node,
 }
 
 /*
+ * Hash algorithms in order of precedence. Only the hash with the strongest
+ * algorithm is verified. The insecure algorithms are only good for detecting
+ * accidental corruption and are never used for verified boot.
+ */
+static const struct fit_hash_algo {
+	const char *name;
+	bool secure;
+} fit_hash_algos[] = {
+	{ .name = "sha512", .secure = true },
+	{ .name = "sha384", .secure = true },
+	{ .name = "sha256", .secure = true },
+	{ .name = "sha1", .secure = false },
+	{ .name = "md5", .secure = false },
+	{ .name = "crc32", .secure = false },
+};
+
+static struct device_node *fit_find_hash_node(struct device_node *image,
+					      const char *name)
+{
+	struct device_node *hash;
+	const char *algo;
+
+	for_each_child_of_node(image, hash) {
+		if (!of_node_has_prefix(hash, "hash"))
+			continue;
+
+		if (!of_property_read_string(hash, "algo", &algo) &&
+		    !strcmp(algo, name))
+			return hash;
+	}
+
+	return NULL;
+}
+
+/*
  * The consistency of the FTD structure was already checked by of_unflatten_dtb()
  */
 static int fit_verify_signature(struct fit_handle *handle,
@@ -406,6 +459,11 @@ static int fit_verify_signature(struct fit_handle *handle,
 	if (of_property_read_u32_index(sig_node, "hashed-strings", 0,
 	    &hashed_strings_start)) {
 		pr_err("hashed-strings start not found in %pOF\n", sig_node);
+		return -EINVAL;
+	}
+
+	if (hashed_strings_start != 0) {
+		pr_err("%pOF: hashed-strings offset must be 0\n", sig_node);
 		return -EINVAL;
 	}
 
@@ -432,8 +490,7 @@ static int fit_verify_signature(struct fit_handle *handle,
 		goto out_sl;
 	}
 
-	ret = fit_digest(handle, digest, &inc_nodes, &exc_props, hashed_strings_start,
-			 hashed_strings_size);
+	ret = fit_digest(handle, digest, &inc_nodes, &exc_props, hashed_strings_size);
 	if (ret)
 		goto out_digest;
 
@@ -454,33 +511,12 @@ static int fit_verify_signature(struct fit_handle *handle,
 	return ret;
 }
 
-static int fit_verify_hash(struct fit_handle *handle, struct device_node *image,
-			   const void *data, int data_len)
+static int fit_verify_hash_node(struct fit_handle *handle,
+				struct device_node *hash, struct digest *d,
+				const void *data, int data_len)
 {
-	struct digest *d;
-	const char *algo;
 	const char *value_read;
-	int hash_len, ret;
-	struct device_node *hash;
-
-	switch (handle->verify) {
-	case BOOTM_VERIFY_NONE:
-		return 0;
-	case BOOTM_VERIFY_AVAILABLE:
-		ret = 0;
-		break;
-	default:
-		ret = -EINVAL;
-	}
-
-	hash = of_get_child_by_name(image, "hash-1");
-	if (!hash)
-		hash = of_get_child_by_name(image, "hash@1");
-	if (!hash) {
-		if (ret)
-			pr_err("image %pOF does not have hashes\n", image);
-		return ret;
-	}
+	int hash_len;
 
 	value_read = of_get_property(hash, "value", &hash_len);
 	if (!value_read) {
@@ -488,21 +524,9 @@ static int fit_verify_hash(struct fit_handle *handle, struct device_node *image,
 		return -EINVAL;
 	}
 
-	if (of_property_read_string(hash, "algo", &algo)) {
-		pr_err("%pOF: \"algo\" property not found\n", hash);
-		return -EINVAL;
-	}
-
-	d = digest_alloc(algo);
-	if (!d) {
-		pr_err("%pOF: unsupported algo %s\n", hash, algo);
-		return -EINVAL;
-	}
-
 	if (hash_len != digest_length(d)) {
 		pr_err("%pOF: invalid hash length %d\n", hash, hash_len);
-		ret = -EINVAL;
-		goto err_digest_free;
+		return -EINVAL;
 	}
 
 	digest_init(d);
@@ -510,17 +534,59 @@ static int fit_verify_hash(struct fit_handle *handle, struct device_node *image,
 
 	if (digest_verify(d, value_read)) {
 		pr_err("%pOF: hash BAD\n", hash);
-		ret =  -EBADMSG;
-	} else {
-		if (handle->verbose)
-			pr_info("%pOF: hash OK\n", hash);
-		ret = 0;
+		return -EBADMSG;
 	}
 
-err_digest_free:
-	digest_free(d);
+	if (handle->verbose)
+		pr_info("%pOF: hash OK\n", hash);
 
-	return ret;
+	return 0;
+}
+
+static int fit_verify_hash(struct fit_handle *handle, struct device_node *image,
+			   const void *data, int data_len)
+{
+	const struct fit_hash_algo *algo;
+	struct device_node *hash;
+	struct digest *d;
+	int i, ret;
+
+	if (handle->verify == BOOTM_VERIFY_NONE)
+		return 0;
+
+	for (i = 0; i < ARRAY_SIZE(fit_hash_algos); i++) {
+		algo = &fit_hash_algos[i];
+
+		if (handle->verify == BOOTM_VERIFY_SIGNATURE && !algo->secure)
+			break;
+
+		hash = fit_find_hash_node(image, algo->name);
+		if (!hash)
+			continue;
+
+		d = digest_alloc(algo->name);
+		if (!d) {
+			pr_debug("%pOF: unsupported algo %s, skipping\n",
+				 hash, algo->name);
+			continue;
+		}
+
+		ret = fit_verify_hash_node(handle, hash, d, data, data_len);
+		digest_free(d);
+
+		return ret;
+	}
+
+	if (handle->verify == BOOTM_VERIFY_AVAILABLE)
+		return 0;
+
+	if (handle->verify == BOOTM_VERIFY_SIGNATURE)
+		pr_err("image %pOF has no supported hash allowed for verified boot\n",
+		       image);
+	else
+		pr_err("image %pOF has no supported hash\n", image);
+
+	return -EINVAL;
 }
 
 static int fit_image_verify_signature(struct fit_handle *handle,
@@ -551,9 +617,9 @@ static int fit_image_verify_signature(struct fit_handle *handle,
 		ret = -EINVAL;
 	}
 
-	sig_node = of_get_child_by_name(image, "signature-1");
+	sig_node = fit_get_child_by_name_exact(image, "signature-1");
 	if (!sig_node)
-		sig_node = of_get_child_by_name(image, "signature@1");
+		sig_node = fit_get_child_by_name_exact(image, "signature@1");
 	if (!sig_node) {
 		pr_err("Image %pOF has no signature\n", image);
 		return ret;
@@ -616,7 +682,7 @@ fit_get_image(struct fit_handle *handle, void *configuration,
 		}
 	}
 
-	return of_get_child_by_name(handle->images, *unit);
+	return fit_get_child_by_name_exact(handle->images, *unit);
 }
 
 /**
@@ -882,11 +948,18 @@ static int fit_find_compatible_unit(struct fit_handle *handle,
 				    bool (*config_node_valid)(struct fit_handle *handle,
 							      struct device_node *config))
 {
-	struct device_node *child = NULL;
+	struct device_node *child = NULL, *dflt = NULL, *best = NULL;
 	struct device_node *barebox_root;
 	int best_score = 0;
-	const char *machine;
+	const char *machine, *dfltname = NULL;
+	bool dflt_pending = false;
 	int ret;
+
+	if (!of_property_read_string(conf_node, "default", &dfltname)) {
+		dflt = fit_get_child_by_name_exact(conf_node, dfltname);
+		if (dflt)
+			dflt_pending = true;
+	}
 
 	barebox_root = of_get_root_node();
 	if (!barebox_root)
@@ -899,6 +972,9 @@ static int fit_find_compatible_unit(struct fit_handle *handle,
 	for_each_child_of_node(conf_node, child) {
 		int score;
 
+		if (child == dflt)
+			dflt_pending = false;
+
 		if (config_node_valid && !config_node_valid(handle, child))
 			continue;
 
@@ -907,26 +983,42 @@ static int fit_find_compatible_unit(struct fit_handle *handle,
 		if (!score)
 			score = fit_fdt_is_compatible(handle, child, machine);
 
-		if (score > best_score) {
-			best_score = score;
-			*unit = child->name;
+		if (!score)
+			continue;
 
-			if (score == OF_DEVICE_COMPATIBLE_MAX_SCORE)
-				break;
+		/*
+		 * A FIT may carry one base devicetree plus a number of
+		 * overlay combinations with multiple configurations matching the
+		 * board equally well. Allow the image author to influences who
+		 * wins ties by means of the default property.
+		 */
+		if (score > best_score || (score == best_score && child == dflt)) {
+			best_score = score;
+			best = child;
 		}
+
+		/* Nothing left to walk into that could do better */
+		if (best_score == OF_DEVICE_COMPATIBLE_MAX_SCORE && !dflt_pending)
+			break;
 	}
 
-	if (best_score) {
+	if (best) {
+		*unit = best->name;
 		pr_info("matching unit '%s' found\n", *unit);
 		return 0;
 	}
 
 default_unit:
 	pr_info("No match found. Trying default.\n");
-	if (of_property_read_string(conf_node, "default", unit) == 0)
-		return 0;
+	if (!dflt) {
+		if (dfltname)
+			pr_err("default configuration '%s' not found\n", dfltname);
+		return -ENOENT;
+	}
 
-	return -ENOENT;
+	*unit = dflt->name;
+
+	return 0;
 }
 
 static int fit_find_last_unit(struct fit_handle *handle,
@@ -982,7 +1074,7 @@ void *fit_open_configuration(struct fit_handle *handle, const char *name,
 		}
 	}
 
-	conf_node = of_get_child_by_name(conf_node, unit);
+	conf_node = fit_get_child_by_name_exact(conf_node, unit);
 	if (!conf_node) {
 		pr_err("configuration '%s' not found\n", unit);
 		return ERR_PTR(-ENOENT);
@@ -1027,12 +1119,11 @@ static int fit_do_open(struct fit_handle *handle)
 
 	handle->root = root;
 
-	handle->images = of_get_child_by_name(handle->root, "images");
+	handle->images = fit_get_child_by_name_exact(handle->root, "images");
 	if (!handle->images)
 		return -ENOENT;
 
-	handle->configurations = of_get_child_by_name(handle->root,
-						      "configurations");
+	handle->configurations = fit_get_child_by_name_exact(handle->root, "configurations");
 
 	of_property_read_string(handle->root, "description", &desc);
 	pr_info("Opened FIT image: %s\n", desc);

@@ -20,13 +20,13 @@ Running barebox
 ---------------
 
 Barebox can be started from CFE using tftp.
-You must setup tftp-server on host 192.168.0.1.
+You must set up tftp-server on host 192.168.0.1.
 Put your barebox-dlink-dir-320.img to tftp-server directory
-(usual /tftpboot or /srv/tftp).
+(usually /tftpboot or /srv/tftp).
 Connect your DIR-320 to your tftp-server network via
 one of four <LAN> sockets.
 
-Next, setup network on DIR-320 and run barebox.bin, e.g.:
+Next, set up network on DIR-320 and run barebox-dlink-dir-320.img, e.g.:
 
 .. code-block:: console
 

@@ -39,7 +39,7 @@ jobs:
           - ARCH: arm
             lgenv: test/arm/multi_v8_efiloader_defconfig.yaml
             defconfig: multi_v8_efiloader_defconfig
-            osimg: debian-13.6.0-arm64-netinst.iso
+            osimg: debian-13.x.y-arm64-netinst.iso
 
           - ARCH: mips
             lgenv: test/mips/qemu-malta_defconfig.yaml
@@ -124,6 +124,15 @@ jobs:
           fi
         done
         echo "testfs=false" >> $GITHUB_OUTPUT
+
+    - name: Check security policy configurator
+      if: matrix.defconfig == 'virt32_secure_defconfig'
+      run: |
+        export ARCH=${{matrix.arch}}
+
+        # Run the configurator before the build step below has generated
+        # any policy lists. The reference platform has four policies.
+        ./test/check-security-policies.sh ${{matrix.defconfig}} 4
 
     - name: Build
       id: build

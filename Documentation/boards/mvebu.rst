@@ -13,7 +13,7 @@ in this window, so there is no way to determine the location afterwards.
 RAM initialisation
 ------------------
 
-Traditionally the RAM initialisation happens with a binary blob that have to be
+Traditionally the RAM initialisation happens with a binary blob that has to be
 extracted from the vendor U-Boot:
 
 .. code-block:: sh
@@ -45,7 +45,7 @@ board, use the parameter ``-n 15`` for ``kwboot`` to delay uploading the image
 and try to hit the right (i.e. second) window harder.
 (The number might have to be adapted per board. The semantic is that the magic
 string is sent until the 15th NAK is seen and only then the image is sent.) A
-typical commandline is:
+typical commandline is::
 
   kwboot -b barebox.img -n 15 -B 115200 -t /dev/ttyUSB
 

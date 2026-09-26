@@ -101,7 +101,7 @@ booted successfully on its own.
 
 In case only the booted system itself knows when it is in a good state,
 it can report this to bootchooser from Linux userspace using the
-*barebox-state* tool from the dt-utils_ package.::
+*barebox-state* tool from the dt-utils_ package::
 
   barebox-state [-n <state variable set>] -s [<prefix>.]<target>.remaining_attempts=<reset-value>
   barebox-state -n system_state -s bootstate.system0.remaining_attempts=3
@@ -114,7 +114,7 @@ on the :ref:`reset reason <reset_reason>` (i.e. != WDG) using the
   bootchooser -s
 
 This will reset the ``remaining_attempts`` counter of the *last chosen* slot to
-its default value (``reset_attempts``).
+its default value (``default_attempts``).
 
 An additional option is to use :ref:`boot attempts locking <bootchooser,attempts_lock>`
 to fully disable automatic fallback.
@@ -125,7 +125,7 @@ Boot Attempts Locking
 #####################
 
 In scenarios where the system is rebooted too frequently (after the ``remaining_attempts``
-counter is decremented, but before it is incremented again after a successful boot), it can unintentionally fall
+counter is decremented, but before it is reset again after a successful boot), it can unintentionally fall
 back to the other boot target.
 This can be avoided by enabling boot attempt locking.
 If enabled, bootchooser is prevented from decrementing the ``remaining_attempts`` counter and falling back
@@ -150,7 +150,7 @@ It can also be controlled from barebox via the :ref:`bootchooser command <comman
   bootchooser -L # unlock
 
 
-.. _dt-utils: https://git.pengutronix.de/cgit/tools/dt-utils
+.. _dt-utils: https://github.com/barebox/dt-utils
 
 General Bootchooser Options
 ---------------------------
@@ -240,7 +240,7 @@ example here we additionally assume, that these root filesystems contain a Linux
 kernel with its corresponding devicetree via boot spec (refer to
 :ref:`Bootloader Spec <bootloader_spec>` for further details).
 
-Either device can be booted with the :ref:`boot <command_boot>` command command,
+Either device can be booted with the :ref:`boot <command_boot>` command,
 and thus can be used by *bootchooser* and we can start to configure the
 *bootchooser* variables.
 
@@ -446,7 +446,7 @@ node. It then looks like:
      };
    };
 
-It could makes sense to store the result of the last *bootchooser* operation
+It could make sense to store the result of the last *bootchooser* operation
 in the *state* variable set as well. In order to do so, add a node with the name
 ``last_chosen`` to the *state* variable set. *bootchooser* will use it if present.
 The *state* variable set definition then looks like:
@@ -567,7 +567,7 @@ instead of the NV run-time environment variables, we just set:
 
    global.bootchooser.state_prefix=system_state
 
-.. note:: Its a good idea to keep the ``bootchooser.<targetname>.default_priority``
+.. note:: It's a good idea to keep the ``bootchooser.<targetname>.default_priority``
    and ``bootchooser.<targetname>.default_attempts`` values in sync with the
    corresponding default values in the devicetree.
 
@@ -575,7 +575,7 @@ Using NV Run-Time Variable Data
 -------------------------------
 
 .. note:: Using NV variables as bootchooser's storage is only meant for
-   evluation purposes, not for production. It is not power-fail safe.
+   evaluation purposes, not for production. It is not power-fail safe.
 
 The following run-time variables are needed. Unlike the configuration
 variables their values are automatically updated by the *bootchooser* algorithm:

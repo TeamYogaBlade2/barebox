@@ -3,7 +3,7 @@
 TI K3 AM62x based boards
 ========================
 
-The TI AM62x is SoC in the line of TI K3 64-bit ARM SoCs.
+The TI AM62x is a SoC in the line of TI K3 64-bit ARM SoCs.
 
 The boot process of the TI AM62x SoCs is a two step process. The first stage boot loader
 is loaded by the ROM code and executed on a Cortex-R5 processor. The code on this
@@ -12,7 +12,7 @@ It then loads the binaries for the A53 cores into DRAM and starts the A53 core. 
 this point on the Cortex-R5 processor is used as a system controller which controls
 clocks and power domains of the SoC.
 
-The Cortex-R5 is a 32-bit processors whereas the Cortex-A53 are 64-bit processors, so
+The Cortex-R5 is a 32-bit processor whereas the Cortex-A53 are 64-bit processors, so
 both 32-bit and 64-bit toolchains are needed::
 
   export CROSS_COMPILE_32=arm-linux-gnueabihf-
@@ -51,12 +51,12 @@ The Arm Trusted Firmware is built from https://github.com/ARM-software/arm-trust
         TARGET_BOARD=lite
   cp build/k3/lite/release/bl31.bin $TI_BOOT/bl31.bin
 
-Bulding OP-TEE
---------------
+Building OP-TEE
+---------------
 
 OP-TEE is built from https://github.com/OP-TEE/optee_os.git::
 
-  make CROSS_COMPILE64=$CC64 CFG_ARM64_core=y CFG_WITH_SOFTWARE_PRNG=y \
+  make CROSS_COMPILE64=$CROSS_COMPILE_64 CFG_ARM64_core=y CFG_WITH_SOFTWARE_PRNG=y \
         PLATFORM=k3-am62x
   cp out/arm-plat-k3/core/tee-raw.bin $TI_BOOT/optee.bin
 
