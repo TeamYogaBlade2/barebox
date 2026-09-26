@@ -223,7 +223,14 @@ $(APPENDED_DTB): FORCE
 	$(call if_changed,build_appended_dtb)
 
 quiet_cmd_append_dtb = APPEND  $@
-      cmd_append_dtb = cat $(obj)/start_dt_2nd.pblb $(APPENDED_DTB) > $@
+      cmd_append_dtb = \
+		{ \
+			pbl_size=$$(wc -c < $(obj)/start_dt_2nd.pblb); \
+			pad=$$(( (8 - (pbl_size % 8)) % 8 )); \
+			cat $(obj)/start_dt_2nd.pblb; \
+			dd if=/dev/zero bs=1 count=$$pad 2>/dev/null; \
+			cat $(APPENDED_DTB); \
+		} > $@
 
 $(obj)/start_dt_2nd-appended.img: $(obj)/start_dt_2nd.pblb $(APPENDED_DTB) FORCE
 	$(call if_changed,append_dtb)
