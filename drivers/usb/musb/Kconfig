@@ -21,6 +21,7 @@ config USB_MUSB_MEDIATEK
 	bool "MediaTek MUSB support"
 	depends on ARCH_MEDIATEK || COMPILE_TEST
 	select GENERIC_PHY
+	select USB_OTGDEV
 	help
 	  Minimal MediaTek MUSB glue for MT6589 secondary bootloader.
 

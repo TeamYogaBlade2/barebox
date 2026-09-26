@@ -48,6 +48,58 @@ struct mtk_glue {
 	enum phy_mode phy_mode;
 };
 
+static int mtk_musb_set_mode(void *ctx, enum usb_dr_mode mode)
+{
+	struct mtk_glue *glue = ctx;
+	struct musb *musb = &glue->musb;
+	u8 devctl;
+	int ret;
+
+	if (musb->port_mode != MUSB_OTG)
+		return -EINVAL;
+
+	devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
+
+	switch (mode) {
+	case USB_DR_MODE_HOST:
+		ret = phy_set_mode(glue->phy, PHY_MODE_USB_HOST);
+		if (ret)
+			return ret;
+
+		devctl |= MUSB_DEVCTL_SESSION;
+		musb_writeb(musb->mregs, MUSB_DEVCTL, devctl);
+		MUSB_HST_MODE(musb);
+		glue->phy_mode = PHY_MODE_USB_HOST;
+		break;
+
+	case USB_DR_MODE_PERIPHERAL:
+		ret = phy_set_mode(glue->phy, PHY_MODE_USB_DEVICE);
+		if (ret)
+			return ret;
+
+		devctl &= ~MUSB_DEVCTL_SESSION;
+		musb_writeb(musb->mregs, MUSB_DEVCTL, devctl);
+		MUSB_DEV_MODE(musb);
+		glue->phy_mode = PHY_MODE_USB_DEVICE;
+		break;
+
+	case USB_DR_MODE_OTG:
+		ret = phy_set_mode(glue->phy, PHY_MODE_USB_OTG);
+		if (ret)
+			return ret;
+
+		devctl &= ~MUSB_DEVCTL_SESSION;
+		musb_writeb(musb->mregs, MUSB_DEVCTL, devctl);
+		glue->phy_mode = PHY_MODE_USB_OTG;
+		break;
+
+	default:
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 /* W1C helpers for interrupt status registers */
 static u8 mtk_musb_clearb(void __iomem *addr, unsigned int offset)
 {
@@ -77,6 +129,12 @@ static int mtk_musb_interrupt(struct musb *musb)
 		musb->int_usb = mtk_musb_clearb(musb->mregs, MUSB_INTRUSB);
 		musb->int_rx = mtk_musb_clearw(musb->mregs, MUSB_INTRRX);
 		musb->int_tx = mtk_musb_clearw(musb->mregs, MUSB_INTRTX);
+
+		if ((musb->int_usb & MUSB_INTR_RESET) &&
+		    !is_host_active(musb)) {
+			musb_ep_select(musb->mregs, 0);
+			musb_writeb(musb->mregs, MUSB_FADDR, 0);
+		}
 
 		if (musb->int_usb || musb->int_tx || musb->int_rx)
 			return musb_interrupt(musb);
@@ -275,6 +333,12 @@ static int mtk_musb_probe(struct device *dev)
 	if (ret) {
 		dev_err(dev, "musb_init_controller failed: %d\n", ret);
 		goto err_mem;
+	}
+
+	if (pdata->mode == MUSB_OTG) {
+		ret = usb_register_otg_device(dev, mtk_musb_set_mode, glue);
+		if (ret)
+			goto err_mem;
 	}
 
 	dev_info(dev, "MediaTek MUSB glue registered (mode %d)\n", pdata->mode);
