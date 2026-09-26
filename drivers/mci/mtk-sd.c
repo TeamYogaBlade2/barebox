@@ -1834,6 +1834,20 @@ static int msdc_drv_probe(struct device *dev)
 	return mci_register(mci);
 }
 
+static const struct msdc_compatible mt8135_compat = {
+	.clk_div_bits = 8,
+	//.recheck_sdio_irq = true,
+	//.hs400_tune = false,
+	//.pad_tune_reg = MSDC_PAD_TUNE,
+	.pad_tune0 = true,
+	.async_fifo = false,
+	.data_tune = false,
+	.busy_check = false,
+	.stop_clk_fix = false,
+	.enhance_rx = false,
+	//.support_64g = false,
+};
+
 static const struct msdc_compatible mt7620_compat = {
 	.clk_div_bits = 8,
 	.pad_tune0 = false,
@@ -1940,6 +1954,7 @@ static const struct msdc_compatible mt8183_compat = {
 };
 
 static const struct of_device_id msdc_ids[] = {
+	{ .compatible = "mediatek,mt8135-mmc", .data = &mt8135_compat},
 	{ .compatible = "mediatek,mt7620-mmc", .data = &mt7620_compat },
 	{ .compatible = "mediatek,mt7621-mmc", .data = &mt7621_compat },
 	{ .compatible = "mediatek,mt7622-mmc", .data = &mt7622_compat },
