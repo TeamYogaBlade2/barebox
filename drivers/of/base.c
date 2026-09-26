@@ -2976,13 +2976,13 @@ mem_initcall(of_probe_memory);
 
 struct device *of_platform_root_device;
 
-static void of_platform_device_create_root(struct device_node *np)
+int of_platform_device_create_root(struct device_node *np)
 {
 	struct device *dev;
 	int ret;
 
 	if (of_platform_root_device)
-		return;
+		return 0;
 
 	dev = xzalloc(sizeof(*dev));
 	dev->id = DEVICE_ID_SINGLE;
@@ -2992,11 +2992,14 @@ static void of_platform_device_create_root(struct device_node *np)
 	ret = platform_device_register(dev);
 	if (WARN_ON(ret)) {
 		free_device(dev);
-		return;
+		return ret;
 	}
 
 	of_platform_root_device = dev;
+
+	return 0;
 }
+EXPORT_SYMBOL_GPL(of_platform_device_create_root);
 
 static const struct of_device_id reserved_mem_matches[] = {
 	{ .compatible = "ramoops" },

@@ -434,6 +434,7 @@ extern int barebox_register_of(struct device_node *root);
 extern int barebox_register_fdt(const void *dtb);
 
 extern struct device *of_platform_root_device;
+extern int of_platform_device_create_root(struct device_node *np);
 
 extern struct device *of_platform_device_create(struct device_node *np,
 						struct device *parent);

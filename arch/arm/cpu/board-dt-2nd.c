@@ -27,7 +27,6 @@
 
 static void mt6589_early_fb_fill(u16 color)
 {
-	volatile u32 *fb = (volatile u32 *)MT6589_EARLY_FB_ADDR;
 	u32 packed = (u32)color | ((u32)color << 16);
 	unsigned int y, x;
 
