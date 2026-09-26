@@ -40,6 +40,13 @@ void dt_2nd_aarch64(void *fdt)
 
 #else
 
+static bool dt_2nd_valid_fdt(const void *fdt)
+{
+	return fdt &&
+		IS_ALIGNED((unsigned long)fdt, 8) &&
+		blob_is_fdt(fdt);
+}
+
 /*
  * When CONFIG_ARM_APPENDED_DTB is enabled the build appends a DTB to
  * barebox-dt-2nd.img. If the primary bootloader loaded the whole file
@@ -49,35 +56,37 @@ static void *dt_2nd_find_fdt(void *r2_fdt)
 {
 	void *appended;
 
-	if (r2_fdt && blob_is_fdt(r2_fdt))
+	if (dt_2nd_valid_fdt(r2_fdt))
 		return r2_fdt;
 
 	if (!IS_ENABLED(CONFIG_ARM_APPENDED_DTB))
-		return r2_fdt;
+		return NULL;
 
 	/*
-	 * After relocate_to_current_adr(), linker symbols are valid at the
-	 * runtime address. The appended DTB is concatenated after the
-	 * binary that the linker produced.
+	 * This function must run before relocate_to_current_adr().
+	 *
+	 * __image_end is a link-time address, so convert it to the address
+	 * where the currently executing PBL image resides first. The
+	 * generated appended image pads the PBL to the next 8-byte boundary.
 	 */
-	appended = (void *)__image_end;
-	if (blob_is_fdt(appended))
+	appended = (void *)ALIGN(
+		(unsigned long)runtime_address(__image_end), 8);
+	if (dt_2nd_valid_fdt(appended))
 		return appended;
 
-	/* Also accept a few bytes of padding (alignment) */
-	appended = (void *)ALIGN((unsigned long)__image_end, 4);
-	if (blob_is_fdt(appended))
-		return appended;
-
-	return r2_fdt;
+	return NULL;
 }
 
 static noinline void dt_2nd_continue(void *fdt)
 {
 	unsigned long membase, memsize;
 
-	fdt = dt_2nd_find_fdt(fdt);
-	if (!fdt || !blob_is_fdt(fdt))
+	/*
+	 * The FDT was resolved before relocation. In particular, don't call
+	 * dt_2nd_find_fdt() here: runtime_address() must not be evaluated
+	 * against the already-relocated image.
+	 */
+	if (!dt_2nd_valid_fdt(fdt))
 		hang();
 
 	fdt_find_mem(fdt, &membase, &memsize);
@@ -88,15 +97,24 @@ static noinline void dt_2nd_continue(void *fdt)
 ENTRY_FUNCTION(start_dt_2nd, r0, r1, r2)
 {
 	unsigned long image_start = (unsigned long)_text + global_variable_offset();
+	void *fdt;
 
 	arm_cpu_lowlevel_init();
 
 	arm_setup_stack(image_start);
 
+	/*
+	 * Locate the appended DTB while the image is still at its load
+	 * address. runtime_address(__image_end) is only meaningful here.
+	 */
+	fdt = dt_2nd_find_fdt((void *)r2);
+	if (!fdt)
+		hang();
+
 	relocate_to_current_adr();
 	setup_c();
 	barrier();
 
-	dt_2nd_continue((void *)r2);
+	dt_2nd_continue(fdt);
 }
 #endif
