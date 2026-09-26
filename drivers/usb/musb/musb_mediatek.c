@@ -8,6 +8,7 @@
 #include <init.h>
 #include <io.h>
 #include <malloc.h>
+#include <clock.h>
 #include <linux/clk.h>
 #include <linux/err.h>
 #include <linux/reset.h>
@@ -283,7 +284,13 @@ static int mtk_musb_probe(struct device *dev)
 	}
 
 	if (glue->rstc) {
-		ret = reset_control_reset(glue->rstc);
+		ret = reset_control_assert(glue->rstc);
+		if (ret)
+			goto err_reset_put;
+
+		mdelay(10);
+
+		ret = reset_control_deassert(glue->rstc);
 		if (ret)
 			goto err_reset_put;
 	}
