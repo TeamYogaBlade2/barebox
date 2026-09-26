@@ -1,0 +1,2 @@
+#include <arm64/mediatek/mt8188-geralt-ciri-sku1.dts>
+#include "mt81xx-common.dtsi"

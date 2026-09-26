@@ -1,0 +1,56 @@
+# SPDX-License-Identifier: GPL-2.0-only
+menu "Pin controllers for MediaTek SoCs"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+
+config PINCTRL_MEDIATEK
+	bool
+	help
+		MediaTek pin controller support
+
+config PINCTRL_MTK_PARIS
+	bool
+	select PINCTRL_MEDIATEK
+	select PINCTRL_GENERIC
+	# select HAVE_GPIO_PINCONF
+
+config PINCTRL_MT6589
+	bool "MediaTek MT6589 pin control"
+	default ARCH_MT6589
+	select PINCTRL_MTK_PARIS
+
+config PINCTRL_MT8183
+	bool "MediaTek MT8183 pin control"
+	default ARCH_MT81XX
+	select PINCTRL_MTK_PARIS
+
+config PINCTRL_MT8186
+	bool "MediaTek MT8186 pin control"
+	default ARCH_MT81XX
+	select PINCTRL_MTK_PARIS
+
+config PINCTRL_MT8188
+	bool "MediaTek MT8188 pin control"
+	default ARCH_MT81XX
+	select PINCTRL_MTK_PARIS
+
+config PINCTRL_MT8189
+	bool "MediaTek MT8189 pin control"
+	default ARCH_MT81XX
+	select PINCTRL_MTK_PARIS
+
+config PINCTRL_MT8192
+	bool "MediaTek MT8192 pin control"
+	default ARCH_MT81XX
+	select PINCTRL_MTK_PARIS
+
+config PINCTRL_MT8195
+	bool "MediaTek MT8195 pin control"
+	default ARCH_MT81XX
+	select PINCTRL_MTK_PARIS
+
+config PINCTRL_MT8196
+	bool "MediaTek MT8196 pin control"
+	default ARCH_MT81XX
+	select PINCTRL_MTK_PARIS
+
+endmenu

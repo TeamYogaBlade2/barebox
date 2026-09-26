@@ -31,6 +31,8 @@ struct device;
 struct clk;
 struct clk_hw;
 
+struct clk_rate_request;
+
 /**
  * struct clk_bulk_data - Data used for bulk clk operations.
  *
@@ -110,8 +112,8 @@ unsigned long clk_hw_get_rate(struct clk_hw *hw);
  *
  * Returns rounded clock rate in Hz, or negative errno.
  */
-long clk_round_rate(struct clk *clk, unsigned long rate);
-long clk_hw_round_rate(struct clk_hw *hw, unsigned long rate);
+unsigned long clk_round_rate(struct clk *clk, unsigned long rate);
+unsigned long clk_hw_round_rate(struct clk_hw *hw, unsigned long rate);
 /**
  * clk_set_rate - set the clock rate for a clock source
  * @clk: clock source
@@ -293,6 +295,10 @@ static inline void clk_put(struct clk *clk)
  *		supported by the clock. The parent rate is an input/output
  *		parameter.
  *
+ * @determine_rate: Given a target rate as input, returns the closest rate
+ *		actually supported by the clock, and optionally the parent clock
+ *		that should be used to provide the clock rate.
+ *
  * @set_parent:	Change the input source of this clock; for clocks with multiple
  *		possible parents specify a new parent by passing in the index
  *		as a u8 corresponding to the parent in either the .parent_names
@@ -342,6 +348,8 @@ struct clk_ops {
 					unsigned long parent_rate);
 	long		(*round_rate)(struct clk_hw *hw, unsigned long,
 					unsigned long *);
+	int		(*determine_rate)(struct clk_hw *hw,
+					  struct clk_rate_request *);
 	int		(*set_parent)(struct clk_hw *hw, u8 index);
 	int		(*get_parent)(struct clk_hw *hw);
 	int		(*set_rate)(struct clk_hw *hw, unsigned long,

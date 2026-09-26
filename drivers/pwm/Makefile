@@ -7,3 +7,4 @@ obj-$(CONFIG_PWM_TPM)		+= pwm-imx-tpm.o
 obj-$(CONFIG_PWM_MXS)		+= pwm-mxs.o
 obj-$(CONFIG_PWM_STM32)		+= pwm-stm32.o
 obj-$(CONFIG_PWM_ROCKCHIP)	+= pwm-rockchip.o
+obj-$(CONFIG_PWM_MTK_DISP)	+= pwm-mtk-disp.o

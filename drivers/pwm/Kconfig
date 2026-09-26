@@ -54,4 +54,12 @@ config PWM_ROCKCHIP
 	  Generic PWM framework driver for the PWM controller found on
 	  Rockchip SoCs.
 
+config PWM_MTK_DISP
+	tristate "MediaTek display PWM driver"
+	default y if ARCH_MT81XX
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+	help
+	  Generic PWM framework driver for MediaTek disp-pwm device.
+	  The PWM is used to control the backlight brightness for display.
+
 endif

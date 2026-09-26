@@ -164,6 +164,7 @@ int virtqueue_add(struct virtqueue *vq, struct scatterlist *sgs[],
 
 unmap_release:
 	err_idx = i;
+	i = head;
 
 	for (n = 0; n < total_sg; n++) {
 		if (i == err_idx)

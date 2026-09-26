@@ -19,7 +19,15 @@ static void copy_vc_fdt(void *dest, void *src, unsigned long max_size)
 	struct fdt_header *oftree_dest = dest;
 	unsigned long size;
 
-	if (!src) {
+	/*
+	 * Anything may be handed to us here: firmware that was not asked
+	 * for a device tree and QEMU pass an ATAGS pointer in the same
+	 * register. Validate the magic before trusting the size, otherwise
+	 * we either copy a bogus amount of data or report a spurious error.
+	 * Both are indistinguishable from "no device tree", so report them
+	 * the same way.
+	 */
+	if (!src || be32_to_cpu(oftree_src->magic) != FDT_MAGIC) {
 		oftree_dest->magic = cpu_to_be32(VIDEOCORE_FDT_ERROR);
 		oftree_dest->totalsize = cpu_to_be32(0);
 		return;
@@ -74,6 +82,7 @@ extern char __dtb_z_bcm2711_rpi_4_start[];
 extern char __dtb_z_bcm2711_rpi_400_start[];
 extern char __dtb_z_bcm2711_rpi_cm4_io_start[];
 extern char __dtb_z_bcm2711_rpi_cm4s_io_start[];
+extern char __dtb_z_bcm2712_rpi_5_start[];
 
 RPI_ENTRY_FUNCTION(start_raspberry_pi1, SZ_128M, fdt)
 {
@@ -142,6 +151,8 @@ static void *rpi_get_board_fdt(int rev)
 		return DT_IF_ENABLED(__dtb_z_bcm2711_rpi_cm4_io_start, CONFIG_MACH_RPI4);
 	case BCM2711_BOARD_REV_CM4_S:
 		return DT_IF_ENABLED(__dtb_z_bcm2711_rpi_cm4s_io_start, CONFIG_MACH_RPI4);
+	case BCM2712_BOARD_REV_5:
+		return DT_IF_ENABLED(__dtb_z_bcm2712_rpi_5_start, CONFIG_MACH_RPI5);
 	}
 
 	return NULL;

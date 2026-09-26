@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
-if ARCH_MEDIATEK
+menu "Mediatek SoCs"
+        depends on ARCH_MEDIATEK
 
 config ARCH_MT6589
 	bool "MediaTek MT6589"
@@ -9,4 +10,18 @@ config ARCH_MT6589
 	  Support for MediaTek MT6589 SoC (used as secondary bootloader after
 	  preloader/LK which initializes DRAM and framebuffer).
 
-endif
+config ARCH_MEDIATEK_V8
+	bool
+	select CPU_V8
+	select CPU_SUPPORTS_64BIT_KERNEL
+	select CLOCKSOURCE_ARM_ARCHITECTED_TIMER
+
+config ARCH_MT81XX
+	bool "Mediatek MT81XX SoCs"
+	select ARCH_MEDIATEK_V8
+	depends on 64BIT
+	default y
+	help
+	  Enables support for various Mediatek SoCs used in Chromebooks
+
+endmenu

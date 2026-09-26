@@ -108,6 +108,23 @@ config DRIVER_VIDEO_BCM283X
 	help
 	  Add support for the BCM283X/VideoCore frame buffer device.
 
+config DRIVER_VIDEO_COREBOOT_FB
+	bool "Coreboot Framebuffer"
+	depends on OFTREE
+	select FIRMWARE_COREBOOT_TABLE
+	help
+	  Say Y here if you want to enable Coreboot framebuffer support.
+	  This driver uses framebuffer info passed from the Coreboot table.
+
+config DRIVER_VIDEO_MTK_STUB
+	bool "Mediatek OVL display stub"
+	default y if ARCH_MT81XX
+	select DRIVER_VIDEO_COREBOOT_FB
+	select DRIVER_VIDEO_SIMPLEFB
+	help
+	  Enable a stub driver that sets up the coreboot framebuffer on a
+		MediaTek display OVL register.
+
 source "drivers/video/rockchip/Kconfig"
 source "drivers/video/imx-ipu-v3/Kconfig"
 

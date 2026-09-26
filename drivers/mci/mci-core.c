@@ -22,6 +22,7 @@
 #include <linux/err.h>
 #include <linux/log2.h>
 #include <linux/sizes.h>
+#include <linux/ktime.h>
 #include <dma.h>
 #include <tee/optee.h>
 
@@ -216,10 +217,30 @@ int mci_switch_status(struct mci *mci, bool crc_err_fatal)
 	return mmc_switch_status_error(mci->host, status);
 }
 
+static int mci_wait_dat0(struct mci *mci, bool level, int timeout_us)
+{
+	struct mci_host *host = mci->host;
+	ktime_t start = ktime_get();
+
+	if (!host->ops.card_busy)
+		return -ENOSYS;
+
+	while (host->ops.card_busy(host) == level) {
+		if (is_timeout(start, timeout_us * NSEC_PER_USEC))
+			return -ETIMEDOUT;
+	}
+
+	return 0;
+}
+
 static int mci_poll_until_ready(struct mci *mci, int timeout_ms)
 {
 	unsigned int status;
 	int err, retries = 0;
+
+	err = mci_wait_dat0(mci, true, timeout_ms * 1000);
+	if (err != -ENOSYS)
+		return err;
 
 	while (1) {
 		err = mci_send_status(mci, &status);

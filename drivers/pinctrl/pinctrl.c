@@ -7,6 +7,7 @@
 #include <common.h>
 #include <malloc.h>
 #include <pinctrl.h>
+#include <linux/pinctrl/pinctrl.h>
 #include <linux/overflow.h>
 #include <errno.h>
 #include <of.h>
@@ -43,12 +44,139 @@ struct pinctrl_consumer_info {
 LIST_HEAD(pinctrl_list);
 EXPORT_SYMBOL(pinctrl_list);
 
+int pinctrl_generic_add_group(struct pinctrl_device *pdev, const char *name,
+			      const unsigned int *pins, unsigned int npins,
+			      void *data)
+{
+	struct group_desc *groups;
+	unsigned int i;
+
+	if (!name || !pins || !npins)
+		return -EINVAL;
+
+	for (i = 0; i < pdev->ngroups; i++)
+		if (!strcmp(pdev->groups[i].grp.name, name))
+			return -EEXIST;
+
+	groups = realloc(pdev->groups,
+			 (pdev->ngroups + 1) * sizeof(*pdev->groups));
+	if (!groups)
+		return -ENOMEM;
+
+	pdev->groups = groups;
+	pdev->groups[pdev->ngroups] = PINCTRL_GROUP_DESC(name, pins, npins,
+							 data);
+
+	return pdev->ngroups++;
+}
+EXPORT_SYMBOL(pinctrl_generic_add_group);
+
+int pinctrl_generic_get_group_count(struct pinctrl_device *pdev)
+{
+	return pdev->ngroups;
+}
+EXPORT_SYMBOL(pinctrl_generic_get_group_count);
+
+const char *pinctrl_generic_get_group_name(struct pinctrl_device *pdev,
+					   unsigned int selector)
+{
+	if (selector >= pdev->ngroups)
+		return NULL;
+
+	return pdev->groups[selector].grp.name;
+}
+EXPORT_SYMBOL(pinctrl_generic_get_group_name);
+
+struct group_desc *pinctrl_generic_get_group(struct pinctrl_device *pdev,
+					     unsigned int selector)
+{
+	if (selector >= pdev->ngroups)
+		return NULL;
+
+	return &pdev->groups[selector];
+}
+EXPORT_SYMBOL(pinctrl_generic_get_group);
+
+int pinctrl_generic_get_group_pins(struct pinctrl_device *pdev,
+				   unsigned int selector,
+				   const unsigned int **pins,
+				   unsigned int *npins)
+{
+	struct group_desc *group;
+
+	group = pinctrl_generic_get_group(pdev, selector);
+	if (!group)
+		return -EINVAL;
+
+	*pins = group->grp.pins;
+	*npins = group->grp.npins;
+
+	return 0;
+}
+EXPORT_SYMBOL(pinctrl_generic_get_group_pins);
+
+int pinmux_generic_add_pinfunction(struct pinctrl_device *pdev,
+				   const struct pinfunction *func)
+{
+	const struct pinfunction **functions;
+	unsigned int i;
+
+	if (!func || !func->name)
+		return -EINVAL;
+
+	for (i = 0; i < pdev->nfunctions; i++)
+		if (!strcmp(pdev->functions[i]->name, func->name))
+			return -EEXIST;
+
+	functions = realloc(pdev->functions,
+			    (pdev->nfunctions + 1) * sizeof(*pdev->functions));
+	if (!functions)
+		return -ENOMEM;
+
+	pdev->functions = functions;
+	pdev->functions[pdev->nfunctions] = func;
+
+	return pdev->nfunctions++;
+}
+EXPORT_SYMBOL(pinmux_generic_add_pinfunction);
+
+int pinmux_generic_get_function_count(struct pinctrl_device *pdev)
+{
+	return pdev->nfunctions;
+}
+EXPORT_SYMBOL(pinmux_generic_get_function_count);
+
+const char *pinmux_generic_get_function_name(struct pinctrl_device *pdev,
+					     unsigned int selector)
+{
+	if (selector >= pdev->nfunctions)
+		return NULL;
+
+	return pdev->functions[selector]->name;
+}
+EXPORT_SYMBOL(pinmux_generic_get_function_name);
+
+int pinmux_generic_get_function_groups(struct pinctrl_device *pdev,
+				       unsigned int selector,
+				       const char * const **groups,
+				       unsigned int *num_groups)
+{
+	if (selector >= pdev->nfunctions)
+		return -EINVAL;
+
+	*groups = pdev->functions[selector]->groups;
+	*num_groups = pdev->functions[selector]->ngroups;
+
+	return 0;
+}
+EXPORT_SYMBOL(pinmux_generic_get_function_groups);
+
 static struct pinctrl_device *pin_to_pinctrl(unsigned int pin)
 {
 	struct pinctrl_device *pinctrl;
 
 	list_for_each_entry(pinctrl, &pinctrl_list, list)
-		if (pin > pinctrl->base &&
+		if (pin >= pinctrl->base &&
 		    pin < pinctrl->base + pinctrl->npins)
 			return pinctrl;
 	return NULL;
@@ -322,6 +450,12 @@ int pinctrl_register(struct pinctrl_device *pdev)
 void pinctrl_unregister(struct pinctrl_device *pdev)
 {
 	list_del(&pdev->list);
+	free(pdev->groups);
+	free(pdev->functions);
+	pdev->groups = NULL;
+	pdev->ngroups = 0;
+	pdev->functions = NULL;
+	pdev->nfunctions = 0;
 }
 
 

@@ -590,6 +590,8 @@ struct mci_ops {
 	void (*set_uhs_signaling)(struct mci_host *host, unsigned int timing);
 	/* Enable enhanced strobe in the controller (HS400ES) */
 	void (*hs400_enhanced_strobe)(struct mci_host *, struct mci_ios *);
+	/* Check if card is busy, usually using dat0 */
+	int (*card_busy)(struct mci_host *);
 };
 
 /** host information */

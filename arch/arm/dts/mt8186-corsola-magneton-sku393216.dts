@@ -1,0 +1,2 @@
+#include <arm64/mediatek/mt8186-corsola-magneton-sku393216.dts>
+#include "mt81xx-common.dtsi"

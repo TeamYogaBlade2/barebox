@@ -38,6 +38,7 @@
 #include <init.h>
 #include <dma.h>
 
+#include <linux/bitmap.h>
 #include <linux/usb/usb.h>
 #include <linux/usb/ch9.h>
 
@@ -46,7 +47,33 @@
 #define USB_BUFSIZ	512
 
 static int dev_count;
-static int dev_index;
+
+/*
+ * USB addresses are 7 bit wide and 0 is reserved for the default address,
+ * so the usable range is 1..127. Track them in a bitmap rather than just
+ * counting up, otherwise a board that sees enough plug/unplug cycles
+ * eventually hands out addresses a device cannot have.
+ */
+static DECLARE_BITMAP(usb_addresses, 128);
+
+static int usb_alloc_address(void)
+{
+	int addr;
+
+	addr = find_next_zero_bit(usb_addresses, 128, 1);
+	if (addr >= 128)
+		return -EADDRNOTAVAIL;
+
+	set_bit(addr, usb_addresses);
+
+	return addr;
+}
+
+static void usb_free_address(int addr)
+{
+	if (addr > 0)
+		clear_bit(addr, usb_addresses);
+}
 
 LIST_HEAD(usb_host_list);
 LIST_HEAD(usb_device_list);
@@ -127,16 +154,8 @@ static int usb_set_configuration(struct usb_device *dev, int configuration)
 		return res;
 }
 
-/* The routine usb_set_maxpacket_ep() is extracted from the loop of routine
- * usb_set_maxpacket(), because the optimizer of GCC 4.x chokes on this routine
- * when it is inlined in 1 single routine. What happens is that the register r3
- * is used as loop-count 'i', but gets overwritten later on.
- * This is clearly a compiler bug, but it is easier to workaround it here than
- * to update the compiler (Occurs with at least several GCC 4.{1,2},x
- * CodeSourcery compilers like e.g. 2007q3, 2008q1, 2008q3 lite editions on ARM)
- */
-static void  noinline
-usb_set_maxpacket_ep(struct usb_device *dev, struct usb_endpoint_descriptor *ep)
+void usb_set_maxpacket_ep(struct usb_device *dev,
+			  struct usb_endpoint_descriptor *ep)
 {
 	int b;
 
@@ -487,7 +506,12 @@ int usb_new_device(struct usb_device *dev)
 
 	usb_setup_descriptor(dev, !host->no_desc_before_addr);
 
-	dev->devnum = ++dev_index;
+	err = usb_alloc_address();
+	if (err < 0) {
+		dev_err(&dev->dev, "out of USB addresses\n");
+		goto err_out;
+	}
+	dev->devnum = err;
 
 	err = usb_set_address(dev); /* set address */
 
@@ -593,8 +617,7 @@ int usb_new_device(struct usb_device *dev)
 			dev->descriptor->idVendor, "%04x");
 	dev_add_param_uint32_fixed(&dev->dev, "idProduct",
 			dev->descriptor->idProduct, "%04x");
-	list_add_tail(&dev->list, &usb_device_list);
-	dev_count++;
+	usb_add_device(dev);
 
 	err = 0;
 
@@ -605,10 +628,20 @@ err_out:
 
 void usb_free_device(struct usb_device *usbdev)
 {
+	usb_free_address(usbdev->devnum);
 	dma_free(usbdev->descriptor);
 	dma_free(usbdev->setup_packet);
 	free_device_res(&usbdev->dev);
 	free(usbdev);
+}
+
+void usb_add_device(struct usb_device *usbdev)
+{
+	if (!usbdev)
+		return;
+
+	list_add_tail(&usbdev->list, &usb_device_list);
+	dev_count++;
 }
 
 void usb_remove_device(struct usb_device *usbdev)
@@ -620,15 +653,21 @@ void usb_remove_device(struct usb_device *usbdev)
 
 	for (i = 0; i < usbdev->maxchild; i++)
 		usb_remove_device(usbdev->children[i]);
+
+	usb_hub_cancel_scans(usbdev);
+
 	if (usbdev->parent && usbdev->portnr)
 		usbdev->parent->children[usbdev->portnr - 1] = NULL;
 	list_del(&usbdev->list);
 	dev_count--;
 
-	if (unregister_device(&usbdev->dev))
-		dev_err(&usbdev->dev, "failed to unregister\n");
-	else
-		dev_info(&usbdev->dev, "removed\n");
+	/*
+	 * unregister_device() frees the device name, so there is nothing
+	 * left to print afterwards.
+	 */
+	dev_info(&usbdev->dev, "removed\n");
+
+	unregister_device(&usbdev->dev);
 
 	usb_free_device(usbdev);
 }
@@ -665,6 +704,7 @@ int usb_host_detect(struct usb_host *host)
 		ret = usb_new_device(host->root_dev);
 		if (ret) {
 			usb_free_device(host->root_dev);
+			host->root_dev = NULL;
 			return ret;
 		}
 	}
@@ -711,6 +751,73 @@ int usb_rescan(void)
  *
  */
 
+/**
+ * usb_mark_disconnected - remember that a device and its children are gone
+ * @dev: the device that has been unplugged
+ */
+static void usb_mark_disconnected(struct usb_device *dev)
+{
+	int i;
+
+	if (usb_device_disconnected(dev))
+		return;
+
+	dev->disconnected = true;
+	dev_info(&dev->dev, "disconnected\n");
+
+	/* everything behind an unplugged hub is gone as well */
+	for (i = 0; i < dev->maxchild; i++)
+		if (dev->children[i])
+			usb_mark_disconnected(dev->children[i]);
+}
+
+/**
+ * usb_device_check_gone - find out whether a failed transfer means "unplugged"
+ * @dev: the device a transfer just failed on
+ *
+ * A transfer can fail for all kinds of reasons, so ask the hub the device
+ * is attached to whether the port still sees a device. Without this the
+ * only thing telling a stale device from a flaky one is a scan, and until
+ * somebody runs one we keep resetting endpoints of a device that is not
+ * there anymore.
+ *
+ * The result is remembered, so this asks the bus once and all further
+ * transfers fail right away.
+ */
+static bool usb_device_check_gone(struct usb_device *dev)
+{
+	struct usb_device *parent = dev->parent;
+
+	if (usb_device_disconnected(dev))
+		return true;
+
+	/*
+	 * A root hub has no hub to ask. It goes away with its controller,
+	 * which is not something we can detect here.
+	 */
+	if (!parent)
+		return false;
+
+	/* If the hub itself is gone, so is everything below it */
+	if (usb_device_check_gone(parent)) {
+		usb_mark_disconnected(dev);
+		return true;
+	}
+
+	/*
+	 * Only believe a hub that positively says the port is empty. If it
+	 * doesn't answer we have learned nothing, and declaring the device
+	 * gone on a transfer that failed for some other reason would be
+	 * worse than leaving it alone.
+	 */
+	if (usb_hub_port_connected(parent, dev->portnr) != 0)
+		return false;
+
+	usb_mark_disconnected(dev);
+
+	return true;
+}
+
 /*
  * submits an Interrupt Message
  */
@@ -720,6 +827,9 @@ int usb_submit_int_msg(struct usb_device *dev, unsigned long pipe,
 	struct usb_host *host = dev->host;
 	int ret;
 
+	if (usb_device_disconnected(dev))
+		return -ENODEV;
+
 	ret = usb_host_acquire(host);
 	if (ret)
 		return ret;
@@ -727,6 +837,9 @@ int usb_submit_int_msg(struct usb_device *dev, unsigned long pipe,
 	ret = host->submit_int_msg(dev, pipe, buffer, transfer_len, interval);
 
 	usb_host_release(host);
+
+	if (ret && usb_device_check_gone(dev))
+		return -ENODEV;
 
 	return ret;
 }
@@ -748,6 +861,9 @@ int usb_control_msg(struct usb_device *dev, unsigned int pipe,
 	int ret;
 	struct devrequest *setup_packet = dev->setup_packet;
 
+	if (usb_device_disconnected(dev))
+		return -ENODEV;
+
 	ret = usb_host_acquire(host);
 	if (ret)
 		return ret;
@@ -768,8 +884,11 @@ int usb_control_msg(struct usb_device *dev, unsigned int pipe,
 
 	usb_host_release(host);
 
-	if (ret)
+	if (ret) {
+		if (usb_device_check_gone(dev))
+			return -ENODEV;
 		return ret;
+	}
 
 	return dev->act_len;
 }
@@ -788,6 +907,9 @@ int usb_bulk_msg(struct usb_device *dev, unsigned int pipe,
 	if (len < 0)
 		return -1;
 
+	if (usb_device_disconnected(dev))
+		return -ENODEV;
+
 	ret = usb_host_acquire(host);
 	if (ret)
 		return ret;
@@ -797,8 +919,11 @@ int usb_bulk_msg(struct usb_device *dev, unsigned int pipe,
 
 	usb_host_release(host);
 
-	if (ret)
+	if (ret) {
+		if (usb_device_check_gone(dev))
+			return -ENODEV;
 		return ret;
+	}
 
 	*actual_length = dev->act_len;
 

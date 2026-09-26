@@ -50,6 +50,13 @@ comment "OFDEVICE is not enabled."
 comment "Without device tree support PINCTRL won't do anything"
 endif
 
+config PINCTRL_GENERIC
+	bool
+	help
+	  Generic apply-time parser for the common pinctrl and pinconf
+	  device tree bindings. Drivers opt into this helper while keeping
+	  barebox's lazy state parsing model.
+
 config PINCTRL_AT91PIO4
 	bool "AT91 PIO4 pinctrl driver"
 	depends on ARCH_AT91
@@ -121,14 +128,8 @@ config PINCTRL_OCELOT
 	  with the same identifiers as Linux's drivers/pinctrl/pinctrl-ocelot.c
 	  so future Linux patches backport with minimal churn.
 
+source "drivers/pinctrl/mediatek/Kconfig"
 source "drivers/pinctrl/sunxi/Kconfig"
 endif
 
 endmenu
-
-config PINCTRL_MT6589
-	bool "MediaTek MT6589 pinctrl"
-	depends on ARCH_MEDIATEK || COMPILE_TEST
-	select PINCTRL
-	help
-	  Minimal pinctrl/gpio for MT6589.

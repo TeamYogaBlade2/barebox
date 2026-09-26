@@ -70,6 +70,13 @@ config TI_SCI_PROTOCOL
 	  This protocol library is used by client drivers to use the features
 	  provided by the system controller.
 
+config FIRMWARE_COREBOOT_TABLE
+	bool "Coreboot Firmware Table"
+	depends on OF
+	help
+	  This driver provides access to the coreboot table for other drivers
+	  to use. Coreboot table includes device info and framebuffer info.
+
 source "drivers/firmware/arm_scmi/Kconfig"
 
 endmenu

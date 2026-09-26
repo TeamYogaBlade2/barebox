@@ -88,7 +88,7 @@
 
 #define TFTP_ERR_RESEND	1
 
-#if defined(DEBUG) || IS_ENABLED(CONFIG_SELFTEST_TFTP)
+#ifdef DEBUG
 #  define debug_assert(_cond)	BUG_ON(!(_cond))
 #else
 #  define debug_assert(_cond) do {			\
@@ -1088,7 +1088,7 @@ static struct dentry *tftp_lookup(struct inode *dir, struct dentry *dentry,
 	if (filesize)
 		inode->i_size = filesize;
 	else
-		inode->i_size = FILE_SIZE_STREAM;
+		inode->i_size_unknown = true;
 
 	d_add(dentry, inode);
 

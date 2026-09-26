@@ -43,8 +43,8 @@ config CLK_SOCFPGA
 if COMMON_CLK
 
 config COMMON_CLK_STM32F
-	bool "STM32F4 and STM32F7 clock driver" if COMPILE_TEST
-	depends on ARCH_STM32
+	bool "STM32F4 and STM32F7 clock driver"
+	depends on ARCH_STM32 || COMPILE_TEST
 	help
 	  Support for stm32f4 and stm32f7 SoC families clocks
 
@@ -83,6 +83,7 @@ config COMMON_CLK_GPIO
 	depends on COMMON_CLK_OF_PROVIDER
 
 source "drivers/clk/sifive/Kconfig"
+source "drivers/clk/mediatek/Kconfig"
 
 config COMMON_CLK_LAN966X
 	bool "Generic Clock Controller driver for LAN966X SoC"
@@ -94,10 +95,3 @@ config COMMON_CLK_LAN966X
 	  SoC.
 
 endif
-
-config COMMON_CLK_MT6589
-	bool "MediaTek MT6589 clocks"
-	depends on ARCH_MEDIATEK || COMPILE_TEST
-	select COMMON_CLK
-	help
-	  Minimal fixed-rate clocks for MT6589 secondary bootloader.

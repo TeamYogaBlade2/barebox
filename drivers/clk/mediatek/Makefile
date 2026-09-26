@@ -1,1 +1,18 @@
-obj-y += clk-mt6589.o
+# SPDX-License-Identifier: GPL-2.0
+obj-$(CONFIG_COMMON_CLK_MEDIATEK) += clk-mtk.o clk-pll.o clk-gate.o clk-apmixed.o clk-cpumux.o reset.o clk-mux.o
+obj-$(CONFIG_COMMON_CLK_MEDIATEK_FHCTL) += clk-fhctl.o clk-pllfh.o
+
+obj-$(CONFIG_COMMON_CLK_MT6589) += clk-mt6589.o
+obj-$(CONFIG_COMMON_CLK_MT8183) += clk-mt8183.o clk-mt8183-apmixedsys.o \
+
+obj-$(CONFIG_COMMON_CLK_MT8186) += clk-mt8186-apmixedsys.o clk-mt8186-topckgen.o \
+				   clk-mt8186-infra_ao.o
+
+obj-$(CONFIG_COMMON_CLK_MT8188) += clk-mt8188-apmixedsys.o clk-mt8188-topckgen.o \
+				   clk-mt8188-infra_ao.o
+
+obj-$(CONFIG_COMMON_CLK_MT8192) += clk-mt8192.o clk-mt8192-apmixedsys.o \
+                                       clk-mt8192-msdc.o
+
+obj-$(CONFIG_COMMON_CLK_MT8195) += clk-mt8195-apmixedsys.o clk-mt8195-topckgen.o \
+				   clk-mt8195-infra_ao.o clk-mt8195-imp_iic_wrap.o clk-mt8195-peri_ao.o

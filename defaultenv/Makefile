@@ -5,6 +5,7 @@ bbenv-$(CONFIG_DEFAULT_ENVIRONMENT_GENERIC_NEW_MENU) += defaultenv-2-menu
 bbenv-$(CONFIG_DEFAULT_ENVIRONMENT_GENERIC_NEW_DFU) += defaultenv-2-dfu
 bbenv-$(CONFIG_DEFAULT_ENVIRONMENT_GENERIC_NEW_REBOOT_MODE) += defaultenv-2-reboot-mode
 bbenv-$(CONFIG_DEFAULT_ENVIRONMENT_GENERIC_NEW_SECURITY_POLICY) += defaultenv-2-security-policy
+bbenv-$(CONFIG_DEFAULT_ENVIRONMENT_GENERIC_NEW_DEVBOOT) += defaultenv-2-devboot
 bbenv-$(CONFIG_DEFAULT_ENVIRONMENT_GENERIC) += defaultenv-1
 obj-$(CONFIG_DEFAULT_ENVIRONMENT) += defaultenv.o
 extra-y += barebox_default_env barebox_default_env.h barebox_default_env$(bbenv-suffix-y) barebox_zero_env
@@ -32,7 +33,7 @@ $(obj)/barebox_default_env.h: $(obj)/barebox_default_env$(bbenv-suffix-y) FORCE
 	$(call if_changed,env_h)
 
 quiet_cmd_env_zero = ENVZ    $@
-cmd_env_zero = ($(objtree)/scripts/bareboxenv -z "$(CONFIG_DEFAULT_ENVIRONMENT_PATH)" $@)
+cmd_env_zero = $(objtree)/scripts/bareboxenv -z "" $@
 
 $(obj)/barebox_zero_env: FORCE
 	$(call if_changed,env_zero)

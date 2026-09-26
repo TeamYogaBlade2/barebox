@@ -154,6 +154,11 @@ config MCI_BCM283X_SDHOST
 	depends on ARCH_BCM283X || COMPILE_TEST
 	select MCI_SDHCI
 
+config MCI_BCMSTB
+	bool "MCI support for BCMSTB"
+	depends on ARCH_BCM283X || COMPILE_TEST
+	select MCI_SDHCI
+
 config MCI_DOVE
 	bool "Marvell Dove SDHCI"
 	depends on ARCH_DOVE || COMPILE_TEST
@@ -277,6 +282,16 @@ config MCI_CADENCE_SDHCI
 	  This selects the Cadence SD/SDIO/eMMC driver.
 	  If you have a controller with this interface, say Y or M here.
 
+config MCI_MTK
+	tristate "MediaTek SD/MMC Card Interface support"
+	depends on HAS_DMA
+	select REGULATOR
+	help
+	  This selects the MediaTek(R) Secure digital and Multimedia card Interface.
+	  If you have a machine with a integrated SD/MMC card reader, say Y or M here.
+	  This is needed if support for any SD/SDIO/MMC devices is required.
+	  If unsure, say N.
+
 endif
 
 config MCI_IMX_ESDHC_PBL
@@ -293,7 +308,3 @@ config MCI_ATMEL_SDHCI_PBL
 
 config MCI_OMAP_HSMMC_PBL
 	bool
-
-config MCI_MTK_SD
-	bool "MediaTek MSDC"
-	depends on ARCH_MEDIATEK || COMPILE_TEST
