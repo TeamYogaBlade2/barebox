@@ -206,6 +206,38 @@ pblb-$(CONFIG_BOARD_GENERIC_DT) += start_dt_2nd
 FILE_barebox-dt-2nd.img = start_dt_2nd.pblb
 image-$(CONFIG_BOARD_GENERIC_DT) += barebox-dt-2nd.img
 
+APPENDED_DTB_NAME := $(strip $(CONFIG_ARM_APPENDED_DTB_NAME))
+
+ifneq ($(APPENDED_DTB_NAME),)
+FILE_barebox-dt-2nd.img = start_dt_2nd-appended.img
+
+APPENDED_DTB := $(objtree)/arch/$(SRCARCH)/dts/$(APPENDED_DTB_NAME)
+
+quiet_cmd_build_appended_dtb = DTBS    $(APPENDED_DTB_NAME)
+      cmd_build_appended_dtb = $(MAKE) $(build)=arch/$(SRCARCH)/dts \
+		arch/$(SRCARCH)/dts/$(APPENDED_DTB_NAME)
+
+$(APPENDED_DTB): FORCE
+	$(call if_changed,build_appended_dtb)
+
+quiet_cmd_append_dtb = APPEND  $@
+      cmd_append_dtb = \
+		{ \
+			pbl_size=$$(wc -c < $(obj)/start_dt_2nd.pblb); \
+			if [ $$((pbl_size % 8)) -ne 0 ]; then \
+				echo "ERROR: start_dt_2nd.pblb is not 8-byte aligned ($$pbl_size bytes)" >&2; \
+				exit 1; \
+			fi; \
+			cat $(obj)/start_dt_2nd.pblb; \
+			cat $(APPENDED_DTB); \
+		} > $@
+
+$(obj)/start_dt_2nd-appended.img: $(obj)/start_dt_2nd.pblb $(APPENDED_DTB) FORCE
+	$(call if_changed,append_dtb)
+
+targets += start_dt_2nd-appended.img
+endif
+
 fit-image = barebox-$(CONFIG_ARCH_LINUX_NAME).fit
 FILE_$(fit-image) = barebox-dt-2nd.img
 image-$(CONFIG_BOARD_GENERIC_FIT) += $(fit-image)

@@ -633,10 +633,28 @@ EXPORT_SYMBOL_GPL(of_devices_ensure_probed_by_name);
 static int of_stdoutpath_init(void)
 {
 	struct device_node *np;
+	struct device_node *root;
+	int ret;
 
 	np = of_get_stdoutpath(NULL);
 	if (!np)
 		return 0;
+
+	/*
+	 * of_device_ensure_probed() walks up the OF hierarchy before creating
+	 * the requested device. With deep probe, this initcall runs before
+	 * of_probe(), which normally creates the root platform device. Create
+	 * that root here so an early top-level stdout device can be probed now.
+	 */
+	if (!of_platform_root_device) {
+		root = of_get_root_node();
+		if (!root)
+			return -ENODEV;
+
+		ret = of_platform_device_create_root(root);
+		if (ret)
+			return ret;
+	}
 
 	/*
 	 * With deep probe support the device providing the console

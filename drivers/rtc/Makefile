@@ -15,3 +15,4 @@ obj-$(CONFIG_RTC_DRV_IMXDI)	+= rtc-imxdi.o
 obj-$(CONFIG_RTC_DRV_JZ4740)	+= rtc-jz4740.o
 obj-$(CONFIG_RTC_DRV_PCF85063)	+= rtc-pcf85063.o
 obj-$(CONFIG_RTC_DRV_PCF85363)	+= rtc-pcf85363.o
+obj-$(CONFIG_RTC_MT6320) += rtc-mt6320.o

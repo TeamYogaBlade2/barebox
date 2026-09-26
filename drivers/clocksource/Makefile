@@ -7,6 +7,7 @@ obj-$(CONFIG_CLOCKSOURCE_DIGIC)   += digic.o
 obj-$(CONFIG_CLOCKSOURCE_EFI) += efi.o
 obj-$(CONFIG_CLOCKSOURCE_EFI_X86) += efi_x86.o
 obj-$(CONFIG_CLOCKSOURCE_KVX)     += kvx_timer.o
+obj-$(CONFIG_CLOCKSOURCE_MEDIATEK)	+= timer-mediatek.o
 obj-$(CONFIG_CLOCKSOURCE_MVEBU)   += mvebu.o
 obj-$(CONFIG_CLOCKSOURCE_NOMADIK) += nomadik.o
 obj-$(CONFIG_CLOCKSOURCE_ORION)   += orion.o

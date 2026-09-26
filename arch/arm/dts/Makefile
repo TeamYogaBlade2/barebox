@@ -265,6 +265,8 @@ lwl-$(CONFIG_MACH_VARISCITE_DT8MCUSTOMBOARD_IMX8MP) += imx8mp-var-dart-dt8mcusto
 lwl-$(CONFIG_MACH_TQMA93XX) += imx93-tqma9352-mba93xxca.dtb.o \
 			       imx93-tqma9352-mba93xxla.dtb.o
 
+lwl-$(CONFIG_ARCH_MT6589) += mt6589-lenovo-b8000-f.dtb.o
+
 lwl-$(CONFIG_ARCH_MEDIATEK_V8) += \
 	mt8183-kukui-jacuzzi-burnet.dtb.o \
 	mt8183-kukui-jacuzzi-cozmo.dtb.o \

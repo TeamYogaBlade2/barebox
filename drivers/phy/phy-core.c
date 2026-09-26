@@ -323,6 +323,8 @@ static struct phy_provider *of_phy_provider_lookup(struct device_node *node)
 	int ret;
 
 	ret = of_device_ensure_probed(node);
+	if (ret && node->parent)
+		ret = of_device_ensure_probed(node->parent);
 	if (ret)
 		return ERR_PTR(ret);
 

@@ -19,6 +19,14 @@ config COMMON_CLK_MEDIATEK_FHCTL
 	  This driver supports MediaTek frequency hopping and
 	  spread spectrum clocking features.
 
+config COMMON_CLK_MT6589
+	tristate "Clock driver for MediaTek MT6589"
+	depends on ARM32 || COMPILE_TEST
+	select COMMON_CLK_MEDIATEK
+	default ARCH_MEDIATEK
+	help
+	  This driver supports MediaTek MT6589 clocks.
+
 config COMMON_CLK_MT8183
 	tristate "Clock driver for MediaTek MT8183"
 	depends on ARM64 || COMPILE_TEST

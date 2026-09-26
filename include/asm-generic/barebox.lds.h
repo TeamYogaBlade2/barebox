@@ -213,7 +213,7 @@ CONFIG_ARCH_BAREBOX_MAX_PBL_SIZE < CONFIG_BAREBOX_MAX_PBL_SIZE
 #define READONLY
 #endif
 
-#ifdef CONFIG_IS_CLANG
+#ifdef CONFIG_CC_IS_CLANG
 /* binutils implements this since v2.27 */
 #define NOCROSSREFS_TO(...)
 #endif

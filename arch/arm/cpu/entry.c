@@ -4,6 +4,7 @@
 
 #include <asm/cache.h>
 #include <asm/barebox-arm.h>
+#include <asm-generic/memory_layout.h>
 
 #include "entry.h"
 
@@ -36,11 +37,40 @@ void __noreturn __barebox_arm_entry(unsigned long membase,
 				    void *boarddata,
 				    unsigned long sp);
 
+/*
+ * arm_mem_stack_top(membase + memsize) == endmem - OPTEE_SIZE - SCRATCH_SIZE
+ * (see arm_mem_stack / arm_mem_scratch helpers).
+ *
+ * Clang forbids non-ASM statements in __naked functions, so under Clang we
+ * keep __naked (required when SP is invalid at entry — BootROM paths) and
+ * compute the stack pointer in pure assembly before branching.
+ *
+ * Simply dropping __naked is incorrect; see:
+ * https://github.com/barebox/barebox/issues/45#issuecomment-5469055707
+ */
 void NAKED __noreturn barebox_arm_entry(unsigned long membase,
 					unsigned long memsize, void *boarddata)
 {
+#if defined(__clang__)
+	/*
+	 * Incoming: r0=membase, r1=memsize, r2=boarddata (AAPCS).
+	 * Outgoing to __barebox_arm_entry: r0,r1,r2 unchanged, r3=sp.
+	 * Large immediates are materialised via literal pool (not sub #imm).
+	 */
+	asm volatile(
+		"add	r3, r0, r1\n\t"
+		"ldr	r12, 2f\n\t"
+		"sub	r3, r3, r12\n\t"
+		"b	__barebox_arm_entry\n\t"
+		"2:	.word	%c0\n\t"
+		:
+		: "i"(OPTEE_SIZE + SCRATCH_SIZE)
+		: "r3", "r12", "memory"
+	);
+#else
 	__barebox_arm_entry(membase, memsize, boarddata,
 			    arm_mem_stack_top(membase + memsize));
+#endif
 }
 
 void __noreturn barebox_pbl_entry(ulong, ulong, void *)

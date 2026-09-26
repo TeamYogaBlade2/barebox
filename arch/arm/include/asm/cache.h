@@ -10,6 +10,9 @@
 
 #ifndef __ASSEMBLY__
 
+void v7_dma_flush_range(unsigned long start, unsigned long end);
+void v7_dma_inv_range(unsigned long start, unsigned long end);
+
 void v8_invalidate_icache_all(void);
 void v8_flush_dcache_all(void);
 void v8_invalidate_dcache_all(void);
