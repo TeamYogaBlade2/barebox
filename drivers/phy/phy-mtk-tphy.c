@@ -108,14 +108,13 @@ static void mtk_phy_clear_bits(void __iomem *reg, u32 bits)
 	writel(readl(reg) & ~bits, reg);
 }
 
-static void mtk_phy_update_field(void __iomem *reg, u32 mask, u32 val)
-{
-	u32 tmp = readl(reg);
-
-	tmp &= ~mask;
-	tmp |= FIELD_PREP(mask, val);
-	writel(tmp, reg);
-}
+#define mtk_phy_update_field(reg, mask, val) \
+	do { \
+		u32 __tmp = readl(reg); \
+		__tmp &= ~(mask); \
+		__tmp |= FIELD_PREP(mask, val); \
+		writel(__tmp, reg); \
+	} while (0)
 
 /*
  * MT6589 specific recover sequence.
@@ -372,6 +371,7 @@ static struct phy *mtk_phy_xlate(struct device *dev,
 {
 	struct mtk_tphy *tphy = dev->priv;
 	struct mtk_phy_instance *inst;
+	struct clk *ref_clk;
 	struct phy *phy;
 	struct resource res;
 	int ret;
@@ -387,21 +387,29 @@ static struct phy *mtk_phy_xlate(struct device *dev,
 	else if (tphy->sif_base)
 		inst->port_base = tphy->sif_base + 0x800; /* first U2 port */
 
+	/* The ref clock belongs to the individual PHY child node. */
+	ref_clk = of_clk_get_by_name(args->np, "ref");
+	if (IS_ERR(ref_clk)) {
+		if (PTR_ERR(ref_clk) == -ENOENT)
+			ref_clk = NULL;
+		else {
+			ret = PTR_ERR(ref_clk);
+			free(inst);
+			return ERR_PTR(ret);
+		}
+	}
+
 	phy = phy_create(dev, args->np, &mtk_tphy_ops);
 	if (IS_ERR(phy)) {
+		if (ref_clk)
+			clk_put(ref_clk);
 		free(inst);
 		return phy;
 	}
 
 	phy_set_drvdata(phy, inst);
 	inst->phy = phy;
-	inst->ref_clk = clk_get_optional(&phy->dev, "ref");
-	if (IS_ERR(inst->ref_clk)) {
-		ret = PTR_ERR(inst->ref_clk);
-		phy_destroy(phy);
-		free(inst);
-		return ERR_PTR(ret);
-	}
+	inst->ref_clk = ref_clk;
 
 	return phy;
 }
