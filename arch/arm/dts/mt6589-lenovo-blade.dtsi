@@ -17,9 +17,6 @@
 
 	chosen {
 		stdout-path = "/framebuffer@bf600000";
-
-		/* DEBUG: testing clock drivers */
-		bootargs = "clk_ignore_unused printk.always_kmsg_dump=1";
 	};
 
 	memory {
