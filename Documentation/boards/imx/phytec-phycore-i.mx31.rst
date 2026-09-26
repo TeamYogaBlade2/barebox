@@ -13,7 +13,7 @@ configuration -0000REU is shipped with:
   * 64 MiB NAND flash
   * 32 MiB NOR flash
   * 512 kiB SRAM
-  * 4kiB EEPROM
+  * 4 kiB EEPROM
   * MMU, FPU
   * Serial, Ethernet, USB (OTG), I2C, SPI, MMC/SD/SDIO, PCMCIA/CF, RTC
 
@@ -21,6 +21,7 @@ Supported baseboards
 --------------------
 
 Supported baseboards are:
+
   * Silica / Phytec PCM-970 via phyMAP-i.MX31, PMA-001
 
 How to get barebox for Phytec's phyCORE-i.MX31

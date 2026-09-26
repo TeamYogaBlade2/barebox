@@ -18,15 +18,15 @@ can be checked out as follows:
 
 .. code-block:: console
 
-  $ git clone https://git.pengutronix.de/git/barebox
+  $ git clone https://github.com/barebox/barebox
   Cloning into 'barebox'...
-  remote: Enumerating objects: 330649, done.
-  remote: Counting objects: 100% (3932/3932), done.
-  remote: Compressing objects: 100% (2203/2203), done.
-  remote: Total 330649 (delta 2421), reused 2217 (delta 1706), pack-reused 326717
-  Receiving objects: 100% (330649/330649), 82.03 MiB | 14.88 MiB/s, done.
-  Resolving deltas: 100% (265076/265076), done.
-  Updating files: 100% (19054/19054), done.
+  remote: Enumerating objects: 363788, done.
+  remote: Counting objects: 100% (2704/2704), done.
+  remote: Compressing objects: 100% (605/605), done.
+  remote: Total 363788 (delta 2251), reused 2132 (delta 2098), pack-reused 361084 (from 3)
+  Receiving objects: 100% (363788/363788), 126.86 MiB | 8.19 MiB/s, done.
+  Resolving deltas: 100% (279758/279758), done.
+  Updating files: 100% (21470/21470), done.
 
 By default, the master branch is checked out. If you want to develop for
 barebox, this is the right branch to send patches against.
@@ -39,6 +39,9 @@ you can look at the ``next`` branch:
   $ git checkout -b next remotes/origin/next
 
 A web interface to the repository is available at
+https://github.com/barebox/barebox
+
+as well as at:
 https://git.pengutronix.de/cgit/barebox
 
 .. _configuration:
@@ -53,6 +56,7 @@ variable and the cross compiler with the ``CROSS_COMPILE`` environment
 variable. Currently, ``ARCH`` must be one of:
 
 * arm
+* kvx
 * mips
 * openrisc
 * ppc
@@ -232,7 +236,7 @@ The FIT image has a kernel type of ``kernel_noload``, instructing the bootloader
 to ignore the load address. The first stage bootloader must thus either support
 ``kernel_noload`` or always ignore load addresses.
 
-For non-DT enabled-bootloaders or other architectures, often the normal barebox
+For non-DT-enabled bootloaders or other architectures, often the normal barebox
 binaries can also be used as they are designed to be startable second stage
 from another bootloader, where possible. For example, if you have U-Boot running
 on your board, you can start barebox with U-Boot's ``bootm`` command. The bootm
@@ -264,7 +268,7 @@ another barebox. For instance, if you mounted a TFTP server to ``/mnt/tftp``
 
 At least ``barebox.bin`` (with :ref:`pbl` support enabled ``images/*.pblb``)
 should be startable second stage. The final binaries (``images/*.img``) may or may not
-be startable second stage as it may have SoC specific headers which prevent running second
+be startable second stage as they may have SoC specific headers which prevent running second
 stage. barebox will usually have handlers in-place to skip these headers, so
 it can chainload itself regardless.
 
@@ -335,9 +339,9 @@ for native and cross build respectively. Their default values are:
 
 These can be overridden using environment or make variables.
 
-As use of pkg-config both for host and target tool in the same build can
-complicate build system integration. There are two ``ARCH=sandbox`` configuration
-to make this more straight forward:
+As use of pkg-config both for host and target tools in the same build can
+complicate build system integration, there are two ``ARCH=sandbox`` configurations
+to make this more straightforward:
 
 Host Tools
 ^^^^^^^^^^

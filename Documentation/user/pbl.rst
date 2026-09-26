@@ -5,12 +5,12 @@ PreBootLoader images (PBL)
 
 Traditionally barebox generates a raw uncompressed binary. PBL is an effort to
 create self extracting compressed images instead. This helps on some boards
-where storage space is sparse. Another usecase of PBL is on SoCs on which the
+where storage space is sparse. Another use case of PBL is on SoCs on which the
 ROM code loads the initial bootloader to (limited) SRAM. With self extracting
 binaries, more binary space becomes available.
 
-PBL is available for ARM and MIPS. It can be enabled in ``make menuconfig`` with
-the ``[*] Pre-Bootloader image`` option.
+PBL is available for ARM, MIPS, RISC-V and sandbox. It can be enabled in
+``make menuconfig`` with the ``[*] Pre-Bootloader image`` option.
 
 The user visible difference is that with PBL support ``barebox.bin`` is no longer
 the final binary image, but instead the images are placed in ``images/``.
@@ -25,6 +25,6 @@ This way source code can be shared between regular barebox and PBL. A special
 case is ``lwl-y += file.o`` which expands to ``obj-y`` when PBL is disabled
 and to ``pbl-y`` when PBL is enabled.
 
-**HINT:** for getting an overview over the binaries, disassemble
+**HINT:** for getting an overview of the binaries, disassemble
 ``barebox.bin`` with or without PBL support and also disassemble the PBL
 (``./images/*.pblb``).

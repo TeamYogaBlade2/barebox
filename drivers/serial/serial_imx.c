@@ -147,7 +147,8 @@ static int imx_serial_getc(struct console_device *cdev)
 					struct imx_serial_priv, cdev);
 	unsigned char ch;
 
-	while (readl(priv->regs + priv->devtype->uts) & UTS_RXEMPTY);
+	while (readl(priv->regs + priv->devtype->uts) & UTS_RXEMPTY)
+		;
 
 	ch = readl(priv->regs + URXD0);
 
@@ -159,7 +160,8 @@ static void imx_serial_flush(struct console_device *cdev)
 	struct imx_serial_priv *priv = container_of(cdev,
 					struct imx_serial_priv, cdev);
 
-	while (!(readl(priv->regs + USR2) & USR2_TXDC));
+	while (!(readl(priv->regs + USR2) & USR2_TXDC))
+		;
 }
 
 static int imx_serial_setbaudrate(struct console_device *cdev, int baudrate)

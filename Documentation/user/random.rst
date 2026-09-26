@@ -15,7 +15,7 @@ Barebox provides two types of RNG sources - PRNG and HWRNG:
   for cryptographic operations, so please use with caution.
 
 - The HWRNG framework is software that makes use of a special hardware feature on
-  your CPU, SoC or motherboard. It can‘t provide any guarantee about cryptographic
+  your CPU, SoC or motherboard. It can't provide any guarantee about cryptographic
   security of used HW. Please refer to vendor documentation and/or RNG certification.
 
 API
@@ -24,10 +24,10 @@ API
 .. code-block:: c
 
         /* mix extra entropy into the PRNG state. */
-        void srand_xor(u64 seed);
+        void srand_xor(u64 entropy);
 
         /* Fill the buffer with PRNG bits. */
-        void get_noncrypto_bytes(void *buf, int len);
+        void get_noncrypto_bytes(void *buf, size_t len);
 
         /* Fill the buffer with bits provided by HWRNG.
          * This function may fail with a message “error: no HWRNG available!”

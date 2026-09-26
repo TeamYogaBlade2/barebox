@@ -5,7 +5,7 @@ Barebox devicetree handling and bindings
 
 The preferred way of adding board support to barebox is to have devices
 on non-enumerable buses probed from device tree.
-barebox provide both the Linux OpenFirmware ``of_*`` and the libfdt ``fdt_`` APIs
+barebox provides both the Linux OpenFirmware ``of_*`` and the libfdt ``fdt_`` APIs
 for device tree parsing. The former makes porting the device tree specific
 bits from Linux device drivers very straight forward, while the latter can be
 used for very early (PBL) handling of flattened device trees, should this be
@@ -38,7 +38,7 @@ environment or boot-time device configuration.
 Device Tree probing largely happens via compatible properties with no special
 meaning to the node names themselves. It's thus paramount that any device tree
 nodes extended in the barebox device tree are referenced by label (e.g.
-``<&phandle>``, not by path, to avoid run-time breakage like this::
+``<&phandle>``), not by path, to avoid run-time breakage like this::
 
   # Upstream dts/src/$ARCH/board.dts
   / {
@@ -111,6 +111,69 @@ and ``cpus``, but **not** ``memory``.
 
 .. _specification: https://www.devicetree.org/specifications/
 
+Built-in Device Tree Overlays
+-----------------------------
+
+Extending the upstream device tree in ``arch/$ARCH/dts`` only works for the
+device tree barebox has built in, not for one passed in by the boot firmware
+or appended to a generic image. Additions that aren't tied to a particular
+device tree can be built as an overlay instead: have the board select
+``CONFIG_OF_OVERLAY_BUILTIN`` and list the overlay in ``overlay-y``, which
+works in any kbuild Makefile::
+
+  overlay-$(CONFIG_MACH_MYBOARD) += myboard.dtbo
+
+The overlay needs the compatible of the board or SoC it belongs to::
+
+  / {
+  	compatible = "myvendor,myboard";
+  	barebox,assert-available = "/soc/mmc@5b010000";
+  };
+
+barebox applies it before probing any device if one of those compatibles is
+in the live tree's root compatible. Fragments that find no target are
+skipped: the tree at hand just describes a board without that node. What the
+overlay can't do without goes into ``barebox,assert-available``, which drops
+the overlay as a whole when that node is missing or disabled, see
+:ref:`devicetree-barebox-assert-available`. Targets have to be paths:
+``&label`` is a phandle, which a foreign device tree can't resolve.
+
+Overlay Base Device Trees
+-------------------------
+
+Rather than hardcoding those paths, an overlay can name the device tree it
+is written against, normally the SoC ``.dtsi`` compiled on its own::
+
+  overlay-$(CONFIG_ARCH_MYSOC) += mysoc.dtbo
+  DTBO_BASE_mysoc := mysoc-symbols
+
+barebox compiles ``arch/$ARCH/dts/mysoc-symbols.dts`` with ``dtc -@`` and
+writes the path behind each of its labels to ``mysoc-symbols-paths.h``::
+
+  #include "mysoc-symbols-paths.h"
+
+  BASE_NODE(sdmmc1) { barebox,restart-warm-bootrom; };
+  &{/} { aliases { mmc0 = BASE_PATH(sdmmc1); }; };
+
+``BASE_NODE(label)`` is the node labelled ``label``, ``BASE_SUBNODE(label,
+name)`` an unlabelled child of it; ``BASE_PATH()``/``BASE_SUBPATH()`` are
+the same as a path string.
+
+The finished overlay is applied to the base at build time, so a fragment
+without a target, an alias pointing at nothing or an unresolvable label
+fails the build instead of the boot. Whether the nodes are *enabled* is up
+to the board, so the overlay can still be skipped at runtime.
+
+Building an Upstream Device Tree
+--------------------------------
+
+A board whose additions are all overlays needs no device tree of its own in
+``arch/$ARCH/dts``: the one the kernel uses will do. Device trees in the
+``dts/`` subtree can be built by name, e.g. to hand to the board as a FIP
+``--hw-config`` next to a generic barebox image::
+
+  make dts/src/arm/st/stm32mp157c-dk2.dtb
+
 Device Tree Compiler
 --------------------
 
@@ -172,7 +235,7 @@ In the ``chosen``-node, barebox fixes up
  * bootsource
  * boot-hartid (only on RISC-V)
 
-These values can be read from the booted linux system in ``/proc/device-tree/``
+These values can be read from the booted Linux system in ``/proc/device-tree/``
 or ``/sys/firmware/devicetree/base``.
 
 .. _of_diff:

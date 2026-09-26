@@ -5,7 +5,7 @@ TI K3 AM62lx based boards
 
 The TI AM62lx is a SoC in the line of TI K3 64-bit ARM SoCs.
 
-The boot process of the TI AM62x SoCs is a two step process. The first stage boot loader
+The boot process of the TI AM62lx SoCs is a two step process. The first stage boot loader
 is loaded by the ROM code and executed on the Cortex-A53 processor. This stage contains
 some firmware files and a BL1 which is responsible for setting up the initial clocks,
 power domains and DRAM. When this is done the BL1 branches back to the ROM which loads
@@ -15,7 +15,7 @@ the second stage which contains the TF-A BL31, barebox proper and optionally OP-
 
   The AM62lx support currently depends on a modified downstream version of the TF-A. See
   https://lore.kernel.org/20250617090142.3000882-1-s.hauer@pengutronix.de for a patch
-  series to be applied on the Downstream TF-A. Be aware that barebox might need further
+  series to be applied on the downstream TF-A. Be aware that barebox might need further
   changes to be compatible with future upstream TF-A support. Specifically the SCMI clock
   IDs used in the assigned-clock-parents properties might not match the future upstream
   solution.
@@ -32,11 +32,11 @@ The Arm Trusted Firmware is built from https://github.com/ARM-software/arm-trust
 
 .. note::
 
-  As time of writing the AM62lx support is not yet supported in upstream TF-A. Build from
+  At the time of writing the AM62lx is not yet supported in upstream TF-A. Build from
   https://github.com/TexasInstruments/arm-trusted-firmware.git 11.00.11 instead.
 
-Bulding OP-TEE
---------------
+Building OP-TEE
+---------------
 
 OP-TEE is built from https://github.com/OP-TEE/optee_os.git::
 
@@ -45,19 +45,19 @@ OP-TEE is built from https://github.com/OP-TEE/optee_os.git::
   cp out/arm-plat-k3/core/tee-raw.bin $BAREBOX_SOURCE/firmware/am62lx-bl32.bin
 
 OP-TEE is optional. barebox will continue without OP-TEE when the file
-does not exist. In that case drop the ``SPD=opteed`` option above when building the TF-A
+does not exist. In that case drop the ``SPD=opteed`` option above when building the TF-A.
 
 .. note::
 
-  As time of writing the AM62lx OP-TEE support has not yet landed in a release. Use the
-  master branch for building OP-TEE
+  At the time of writing the AM62lx OP-TEE support has not yet landed in a release. Use the
+  master branch for building OP-TEE.
 
 Building barebox
 ----------------
 
 The am62lx images are built as part of the ``multi_v8_defconfig``::
 
-  export ARCH=arm CROSS_COMPILE=CROSS_COMPILE_64
+  export ARCH=arm CROSS_COMPILE=$CROSS_COMPILE_64
   make multi_v8_defconfig
   make
   cp images/barebox-am62lx-evm-tiboot3.img $TI_BOOT/tiboot3.bin
@@ -65,7 +65,7 @@ The am62lx images are built as part of the ``multi_v8_defconfig``::
 
 USB DFU boot
 ------------
-K3 Boards can be booted via USB DFU. When in USB boot mode the initial stage can be uploaded
+K3 boards can be booted via USB DFU. When in USB boot mode the initial stage can be uploaded
 using ``dfu-util``::
 
   dfu-util -D images/barebox-am62lx-evm-tiboot3.img -a 0

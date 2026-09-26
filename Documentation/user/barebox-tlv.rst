@@ -3,7 +3,7 @@ barebox TLV - Non-Volatile Factory Data Storage
 
 barebox TLV ("Tag Length Value" format) is a system to store and
 retrieve a device's (read-only) meta-data from non-volatile memory.
-It is intended to handle information that are usually only set in
+It is intended to handle information that is usually only set in
 the factory - like serial number, MAC-addresses, analog calibration
 data, etc.
 Data is stored in a tag-length-value format (hence the name) and read
@@ -64,7 +64,7 @@ The TLV binary has the following format:
 Tags
 ----
 
-Tags are defined as 32-bit integers.
+Tags are defined as 16-bit integers.
 A tag defines the following attributes:
 
 * **Data format:**
@@ -160,7 +160,7 @@ An example can be found in ``scripts/bareboxtlv-generator/data-example.yaml``.
          }"]
 
      tlv_key     [label="{tlv.key | PRIVATE KEY}"]
-     generator   [label="barebox-tlv-generator.py"]
+     generator   [label="bareboxtlv-generator.py"]
      signed_bin  [label="{TLV_signed.bin | Signed TLV data}"]
 
      schema_yaml -> generator
@@ -169,7 +169,7 @@ An example can be found in ``scripts/bareboxtlv-generator/data-example.yaml``.
      generator   -> signed_bin
    }
 
-With these information in place a TLV binary can be created:
+With this information in place a TLV binary can be created:
 
 .. code-block:: shell
 
@@ -184,7 +184,7 @@ that is correctly configured, can be used as KEY.
 
 .. note::
   The ``FactoryDataset`` class in ``bareboxtlv-generator.py``
-   is intended to be used as a library.
+  is intended to be used as a library.
 
 Data Location
 -------------
@@ -239,7 +239,7 @@ A custom TLV format can be created for example like this:
       { 0x0024, tlv_bind_soc_uid, "bound-soc-uid" },
       /* Custom key */
       { 0x8001, tlv_format_str, "custom-key"},
-      { /* sentintel */ },
+      { /* sentinel */ },
     };
 
     static struct tlv_mapping *mappings[] = {
@@ -272,7 +272,7 @@ A custom TLV format can be created for example like this:
 * line 29: The compatible string of the partition, that will contain the data.
 * line 5,34: Some randomly generated 32bit value to uniquely identify the
   mapping-table.
-* line 38: The keyring tlv-stange should be used to validate the signature.
+* line 38: The keyring ``tlv-custom`` should be used to validate the signature.
   Keys for the keyring are specified in the barebox config
   ``CONFIG_CRYPTO_PUBLIC_KEYS`` with for example:
   ``keyring=tlv-custom:__ENV__TLV_KEY``.

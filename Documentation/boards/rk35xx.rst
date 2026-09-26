@@ -32,7 +32,7 @@ Building
 --------
 
 The build process needs three binary files which have to be copied from the
-`rkbin https://github.com/rockchip-linux/rkbin` repository to the barebox source tree:
+`rkbin <https://github.com/rockchip-linux/rkbin>`_ repository to the barebox source tree:
 
 .. code-block:: sh
 
@@ -69,7 +69,7 @@ A bootable SD card can be created with:
   dd if=images/barebox-rk3568-evb.img of=/dev/sdx bs=1024 seek=32
 
 The barebox image is written to the raw device, so make sure the partitioning
-doesn't conflict with the are barebox is written to. Starting the first
+doesn't conflict with the area barebox is written to. Starting the first
 partition at offset 8MiB is a safe bet.
 
 USB bootstrapping
@@ -135,7 +135,7 @@ override in the ``ddrbin_param.txt`` file in the rkbin repository:
 And after that the ``ddrbin_tool`` binary can be used to apply this
 modification to the relevant ddr init blob::
 
-$ tools/ddrbin_tool rk3568 tools/ddrbin_param.txt bin/rk35/rk3568_ddr_1560MHz_v1.21.bin
+  $ tools/ddrbin_tool rk3568 tools/ddrbin_param.txt bin/rk35/rk3568_ddr_1560MHz_v1.21.bin
 
 Adding new SoC support
 ----------------------
@@ -157,7 +157,7 @@ Rockchip Secure Boot
 
 Rockchip Secure Boot is a Rockchip feature to ensure the integrity and
 legitimacy of the firmware running on a device. The Bootrom verifies that the
-header of a loaded Rockchip image contains a public key that matches a sha265
+header of a loaded Rockchip image contains a public key that matches a sha256
 hash that is stored in the OTP fuses of the SoC and a signature that can be
 verified with this public key.
 
@@ -229,7 +229,7 @@ how to enable this PTA.
 .. note::
 
    The OP-TEE rksecure PTA is only available in Upstream OP-TEE.
-   Rockchips Downstream OP-TEE blob does not support writing the OTP area and
+   Rockchip's Downstream OP-TEE blob does not support writing the OTP area and
    enabling Secure Boot.
 
 Enable the ``rksecure`` command by enabling the following config variables::
@@ -251,7 +251,7 @@ length of the RSA key that you use for image signing::
 
   barebox$ rksecure -x <hash> -b <bits> -l
 
-.. warn::
+.. warning::
 
    Once you executed this command on a device, the Bootrom will
    reject any image that has not been signed with the appropriate RSA key.
