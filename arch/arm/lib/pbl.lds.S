@@ -96,6 +96,10 @@ SECTIONS
 	. = ALIGN(4);
 	.data : { *(.data*) }
 
+	. = ALIGN(ASM_SZPTR);
+	.got : { *(.got) *(.got.plt) }
+	.dynamic : { *(.dynamic) }
+
 	. = ALIGN(4);
 	__shasum_start = .;
 	.shasum : {
@@ -152,6 +156,6 @@ SECTIONS
 
 	pbl_image_size =  .;
 
-	_barebox_image_size = __image_end;
+	_barebox_image_size = ABSOLUTE(__image_end);
 	_barebox_pbl_size = __bss_start;
 }

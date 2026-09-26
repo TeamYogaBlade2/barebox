@@ -127,11 +127,11 @@ int fwobj_uncompress(struct fwobj *fwobj, void *dest);
 	do {								\
 		extern char _fw_z_##name##_start[];			\
 		extern char _fw_z_##name##_end[];			\
-		extern char _fw_z_##name##_uncompressed_size[];		\
+		extern const size_t _fw_z_##name##_uncompressed_size;	\
 		(fwobj)->data = _fw_z_##name##_start;			\
 		(fwobj)->size = _fw_z_##name##_end - _fw_z_##name##_start;\
 		(fwobj)->uncompressed_size =				\
-			(size_t)_fw_z_##name##_uncompressed_size;	\
+			_fw_z_##name##_uncompressed_size;		\
 	} while (0)
 
 static inline int firmware_next_image_check_sha256(const void *hash, bool verbose)

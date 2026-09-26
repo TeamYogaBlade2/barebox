@@ -124,7 +124,8 @@ static void imx_serial_putc(struct console_device *cdev, char c)
 					struct imx_serial_priv, cdev);
 
 	/* Wait for Tx FIFO not full */
-	while (readl(priv->regs + priv->devtype->uts) & UTS_TXFULL);
+	while (readl(priv->regs + priv->devtype->uts) & UTS_TXFULL)
+		;
 
         writel(c, priv->regs + URTX0);
 }

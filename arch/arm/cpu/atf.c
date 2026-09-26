@@ -4,7 +4,7 @@
 #include <asm/atf_common.h>
 #include <asm/system.h>
 
-static inline void raw_write_daif(unsigned int daif)
+static inline void raw_write_daif(unsigned long daif)
 {
 	__asm__ __volatile__("msr DAIF, %0\n\t" : : "r" (daif) : "memory");
 }

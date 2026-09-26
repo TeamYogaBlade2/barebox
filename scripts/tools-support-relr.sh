@@ -4,7 +4,7 @@
 tmp_file=$(mktemp)
 trap "rm -f $tmp_file.o $tmp_file $tmp_file.bin" EXIT
 
-cat << "END" | $CC -c -x c - -o $tmp_file.o >/dev/null 2>&1
+cat << "END" | $CC ${CLANG_FLAGS:-} -c -x c - -o $tmp_file.o >/dev/null 2>&1
 void *p = &p;
 END
 

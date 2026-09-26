@@ -7,7 +7,7 @@
 .globl __pbl_board_stack_top
 .globl __pbl_board_entry
 
-.section .text_head_prologue_common, "x"
+.section .text_head_prologue_common, "ax"
 ENTRY(__barebox_arm64_head)
 	nop
 	adr x9, __pbl_board_stack_top

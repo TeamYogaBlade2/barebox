@@ -108,7 +108,7 @@
 #if __LINUX_ARM_ARCH__ > 7
 static inline unsigned int current_el(void)
 {
-	unsigned int el;
+	unsigned long el;
 	asm volatile("mrs %0, CurrentEL" : "=r" (el) : : "cc");
 	return el >> 2;
 }
@@ -172,10 +172,10 @@ static inline unsigned long long get_cntpct(void)
 #endif
 static inline unsigned int get_cr(void)
 {
-	unsigned int val;
-
 #ifdef CONFIG_CPU_64v8
+	unsigned long val;
 	unsigned int el = current_el();
+
 	if (el == 1)
 		asm volatile("mrs %0, sctlr_el1" : "=r" (val) : : "cc");
 	else if (el == 2)
@@ -183,6 +183,8 @@ static inline unsigned int get_cr(void)
 	else
 		asm volatile("mrs %0, sctlr_el3" : "=r" (val) : : "cc");
 #else
+	unsigned int val;
+
 	asm volatile ("mrc p15, 0, %0, c1, c0, 0  @ get CR" : "=r" (val) : : "cc");
 #endif
 
@@ -192,15 +194,16 @@ static inline unsigned int get_cr(void)
 static inline void set_cr(unsigned int val)
 {
 #ifdef CONFIG_CPU_64v8
+	unsigned long val64 = val;
 	unsigned int el;
 
 	el = current_el();
 	if (el == 1)
-		asm volatile("msr sctlr_el1, %0" : : "r" (val) : "cc");
+		asm volatile("msr sctlr_el1, %0" : : "r" (val64) : "cc");
 	else if (el == 2)
-		asm volatile("msr sctlr_el2, %0" : : "r" (val) : "cc");
+		asm volatile("msr sctlr_el2, %0" : : "r" (val64) : "cc");
 	else
-		asm volatile("msr sctlr_el3, %0" : : "r" (val) : "cc");
+		asm volatile("msr sctlr_el3, %0" : : "r" (val64) : "cc");
 #else
 	asm volatile("mcr p15, 0, %0, c1, c0, 0 @ set CR"
 	  : : "r" (val) : "cc");

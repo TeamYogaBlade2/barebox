@@ -14,7 +14,7 @@
 
 #define read_cpuid(reg)							\
 	({								\
-		unsigned int __val;					\
+		unsigned long __val;					\
 		asm("mrs	%0, " __stringify(reg)			\
 		    : "=r" (__val)					\
 		    :							\

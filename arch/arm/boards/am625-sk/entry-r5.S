@@ -6,7 +6,7 @@
 #define STACK_TOP SRAM_BASE + 0x3e000
 
 .arm
-.section .text_head_entry_start_am625_sk_r5;
+.section .text_head_entry_start_am625_sk_r5, "ax";
 
 ENTRY(start_am625_sk_r5)
         ldr r3, =STACK_TOP
@@ -17,7 +17,7 @@ _reset_am625_sk: .word SRAM_BASE + am625_sk_r5_entry
 
 ENDPROC(start_am625_sk_r5)
 
-.section .text_head_entry_start_am625sip_sk_r5;
+.section .text_head_entry_start_am625sip_sk_r5, "ax";
 
 ENTRY(start_am625sip_sk_r5)
         ldr r3, =STACK_TOP

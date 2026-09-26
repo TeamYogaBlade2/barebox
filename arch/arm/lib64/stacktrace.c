@@ -46,10 +46,11 @@ static void dump_backtrace_entry(unsigned long where, unsigned long from)
 #endif
 }
 
+register unsigned long current_sp asm ("sp");
+
 void unwind_backtrace(struct pt_regs *regs)
 {
         struct stackframe frame = {};
-	register unsigned long current_sp asm ("sp");
 
 	if (regs) {
 		frame.fp = regs->regs[29];

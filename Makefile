@@ -914,6 +914,17 @@ LDFLAGS_common += -z noexecstack
 # Avoid '... has a LOAD segment with RWX permissions' warnings on binutils 2.39+
 LDFLAGS_common += $(call ld-option,--no-warn-rwx-segments)
 
+ifdef CONFIG_LD_IS_LLD
+# barebox applies its own dynamic relocations before anything is mapped
+# read-only and never runs under a dynamic loader, so text relocations are
+# fine and RELRO is meaningless. Unlike ld.bfd, ld.lld needs to be told:
+# it defaults to -z text, i.e. errors out on relocations against absolute
+# addresses in read-only sections, and synthesizes a RELRO segment that
+# requires the .dynamic/.got/.data.rel.ro sections to be contiguous, which
+# the barebox linker scripts don't guarantee.
+LDFLAGS_common += -z notext -z norelro
+endif
+
 LDFLAGS_barebox += $(LDFLAGS_common)
 LDFLAGS_pbl += $(LDFLAGS_common)
 LDFLAGS_elf += $(LDFLAGS_common) --nmagic -s

@@ -7,7 +7,7 @@
 	(ARM64_IMAGE_FLAG_PAGE_SIZE_4K << ARM64_IMAGE_FLAG_PAGE_SIZE_SHIFT) | \
 	(ARM64_IMAGE_FLAG_PHYS_BASE << ARM64_IMAGE_FLAG_PHYS_BASE_SHIFT)
 
-.section .text_head_entry_exynos
+.section .text_head_entry_exynos, "ax"
 ENTRY("start_exynos")
 	nop                        /* code0 */
 	b 2f                       /* code1 */
@@ -21,7 +21,7 @@ ENTRY("start_exynos")
 	.int   0                   /* reserved (PE-COFF offset) */
 	.asciz "barebox"	   /* unused for now */
 2:
-	adr x1, _text - .
+	adr x1, _text
 	mov sp, x1
 	/* Stack now grows into the 0x80000 image load offset specified
 	 * above. This is more than enough until FDT /memory is decoded.

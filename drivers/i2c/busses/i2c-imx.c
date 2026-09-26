@@ -89,8 +89,6 @@ static struct fsl_i2c_clk_pair vf610_i2c_clk_div[] = {
 	{ 3840, 0x3F }, { 4096, 0x7B }, { 5120, 0x7D }, { 6144, 0x7E },
 };
 
-static const struct fsl_i2c_hwdata imx21_i2c_hwdata;
-
 struct fsl_i2c_hwdata {
 	unsigned		regshift;
 	struct fsl_i2c_clk_pair	*clk_div;
@@ -111,6 +109,8 @@ struct fsl_i2c_struct {
 	const struct fsl_i2c_hwdata *hwdata;
 };
 #define to_fsl_i2c_struct(a)	container_of(a, struct fsl_i2c_struct, adapter)
+
+static const struct fsl_i2c_hwdata imx21_i2c_hwdata;
 
 static inline void fsl_i2c_write_reg(unsigned int val,
 				     struct fsl_i2c_struct *i2c_fsl,

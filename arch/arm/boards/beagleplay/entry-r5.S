@@ -6,7 +6,7 @@
 #define STACK_TOP SRAM_BASE + 0x3e000
 
 .arm
-.section .text_head_entry_start_beagleplay_r5;
+.section .text_head_entry_start_beagleplay_r5, "ax";
 
 ENTRY(start_beagleplay_r5)
         ldr r3, =STACK_TOP

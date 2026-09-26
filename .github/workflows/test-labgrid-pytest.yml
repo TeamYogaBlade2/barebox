@@ -49,6 +49,11 @@ jobs:
             lgenv: test/arm/multi_v8_efi_defconfig.yaml
             defconfig: multi_v8_efi_defconfig
 
+          - ARCH: arm64
+            lgenv: test/arm/multi_v8_efi_defconfig.yaml
+            defconfig: multi_v8_efi_defconfig
+            variant: llvm
+
           - ARCH: mips
             lgenv: test/mips/qemu-malta64el_defconfig.yaml
             defconfig: qemu-malta64el_defconfig
@@ -65,6 +70,11 @@ jobs:
             lgenv: test/x86/efi_defconfig.yaml
             defconfig: efi_defconfig
 
+          - ARCH: x86
+            lgenv: test/x86/efi_defconfig.yaml
+            defconfig: efi_defconfig
+            variant: llvm
+
           - ARCH: riscv
             lgenv: test/riscv/qemu@virt32_defconfig.yaml
             defconfig: virt32_defconfig
@@ -80,6 +90,10 @@ jobs:
           - ARCH: sandbox
             lgenv: 'test/sandbox/allyesconfig.yaml'
             defconfig: allyesconfig
+
+    env:
+      # Tells builds of the same defconfig with different toolchains apart
+      VARIANT_SUFFIX: ${{ matrix.variant && format('-{0}', matrix.variant) || '' }}
 
     steps:
     - name: Checkout code
@@ -114,8 +128,9 @@ jobs:
     - name: Build
       id: build
       run: |
-        export KBUILD_OUTPUT=build-${{matrix.arch}}-${{matrix.defconfig}}
+        export KBUILD_OUTPUT=build-${{matrix.arch}}-${{matrix.defconfig}}$VARIANT_SUFFIX
         export ARCH=${{matrix.arch}}
+        export LLVM=${{ matrix.variant == 'llvm' && '1' || '' }}
         export KCONFIG_ADD="common/boards/configs/enable_self_test.config \
                             common/boards/configs/disable_target_tools.config \
                             common/boards/configs/enable_werror.config"
@@ -135,14 +150,14 @@ jobs:
     - name: labgrid-pytest
       if: steps.build.outcome == 'success'
       run: |
-        export KBUILD_OUTPUT=build-${{matrix.arch}}-${{matrix.defconfig}}
+        export KBUILD_OUTPUT=build-${{matrix.arch}}-${{matrix.defconfig}}$VARIANT_SUFFIX
 
         for i in ${{matrix.lgenv}}; do
           grep -wq '\(QEMUDriver\|ExternalConsoleDriver\):' "$i" || continue
 
           extraargs="${{matrix.lgargs}}"
 
-          cfg=$(basename $i .yaml)
+          cfg=$(basename $i .yaml)$VARIANT_SUFFIX
           echo "Testing $cfg"
           labgrid-pytest --lg-env $i test/py --verbosity=1 \
           --junitxml=$cfg.tests.xml --lg-log=log/$cfg $extraargs
@@ -154,7 +169,7 @@ jobs:
         for i in ${{matrix.lgenv}}; do
           grep -wq '\(QEMUDriver\|ExternalConsoleDriver\):' "$i" || continue
 
-          cfg=$(basename $i .yaml)
+          cfg=$(basename $i .yaml)$VARIANT_SUFFIX
           cat log/$cfg/* || true
         done
 
@@ -162,5 +177,5 @@ jobs:
       uses: EnricoMi/publish-unit-test-result-action@v2
       if: steps.build.outcome == 'success'
       with:
-        check_name: "Test Results (${{matrix.defconfig}})"
+        check_name: "Test Results (${{matrix.defconfig}}${{ matrix.variant && format(', {0}', matrix.variant) || '' }})"
         files: ./*.tests.xml

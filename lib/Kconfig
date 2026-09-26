@@ -261,7 +261,7 @@ config IDR
 	bool
 
 config TOOLS_SUPPORT_RELR
-	def_bool $(success,env "CC=$(CC)" "LD=$(LD)" "NM=$(NM)" "OBJCOPY=$(OBJCOPY)" $(srctree)/scripts/tools-support-relr.sh)
+	def_bool $(success,env "CC=$(CC)" "CLANG_FLAGS=$(CLANG_FLAGS)" "LD=$(LD)" "NM=$(NM)" "OBJCOPY=$(OBJCOPY)" $(srctree)/scripts/tools-support-relr.sh)
 
 config LIBRELOC
 	bool

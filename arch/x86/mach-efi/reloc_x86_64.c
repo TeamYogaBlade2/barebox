@@ -46,14 +46,14 @@ asmlinkage efi_status_t _relocate(long, Elf64_Dyn *);
 efi_status_t _relocate(long ldbase, Elf64_Dyn *dyn)
 {
 	long relsz = 0, relent = 0;
-	Elf64_Rel *rel = 0;
+	Elf64_Rela *rel = 0;
 	unsigned long *addr;
 	int i;
 
 	for (i = 0; dyn[i].d_tag != DT_NULL; ++i) {
 		switch (dyn[i].d_tag) {
 			case DT_RELA:
-				rel = (Elf64_Rel*)
+				rel = (Elf64_Rela *)
 					((unsigned long)dyn[i].d_un.d_ptr
 					 + ldbase);
 				break;
@@ -84,15 +84,21 @@ efi_status_t _relocate(long ldbase, Elf64_Dyn *dyn)
 				break;
 
 			case R_X86_64_RELATIVE:
+				/*
+				 * RELA relocations carry their addend
+				 * explicitly. Don't rely on the linker having
+				 * stored it in the section contents as well:
+				 * ld.bfd does, ld.lld doesn't.
+				 */
 				addr = (unsigned long *)
 					(ldbase + rel->r_offset);
-				*addr += ldbase;
+				*addr = ldbase + rel->r_addend;
 				break;
 
 			default:
 				break;
 		}
-		rel = (Elf64_Rel*) ((char *) rel + relent);
+		rel = (Elf64_Rela *)((char *)rel + relent);
 		relsz -= relent;
 	}
 	return EFI_SUCCESS;

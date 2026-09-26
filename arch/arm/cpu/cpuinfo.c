@@ -124,7 +124,7 @@ static int do_cpuinfo(int argc, char *argv[])
 			cpu_arch += CPU_ARCH_ARMv3;
 	} else if ((mainid & 0x000f0000) == 0x000f0000) {
 #ifdef CONFIG_CPU_64v8
-		unsigned int isar2;
+		unsigned long isar2;
 
 		__asm__ __volatile__(
 			"mrs	%0, id_isar2_el1\n"

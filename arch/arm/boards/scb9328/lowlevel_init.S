@@ -14,7 +14,7 @@
 	ldr		r1,	=val;	\
 	str		r1,   [r0];
 
-.section .text_head_entry_start_scb9328
+.section .text_head_entry_start_scb9328, "ax"
 
 .globl start_scb9328
 start_scb9328:

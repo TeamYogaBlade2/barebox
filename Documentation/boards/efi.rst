@@ -33,6 +33,12 @@ Use the following to build barebox for EFI:
 
 The resulting EFI image is ``barebox.efi`` (or the barebox-flash-image link).
 
+Both GCC/binutils and LLVM toolchains are supported. For the latter, set
+``LLVM=1`` (or e.g. ``LLVM=-19``, if clang is called ``clang-19``) on the
+``make`` command line to use ``clang``, ``ld.lld`` and ``llvm-objcopy``.
+This applies to x86 as well as to ARM64 EFI builds like
+``multi_v8_efi_defconfig``.
+
 Running barebox on EFI systems
 ------------------------------
 

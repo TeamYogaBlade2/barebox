@@ -8,7 +8,7 @@
  * ENTRY_PROC - mark start of entry procedure
  */
 #define ENTRY_PROC(name) \
-	.section .text_head_entry_##name; \
+	.section .text_head_entry_##name, "ax"; \
 	ENTRY(##name); \
 		b 2f; \
 		nop; \
