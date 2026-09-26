@@ -373,14 +373,17 @@ config ARM_APPENDED_DTB
 	  memory. This allows primary bootloaders that cannot pass a DTB
 	  (only load a single binary) to still start barebox.
 
-	  Select the DTB with ARM_APPENDED_DTB_NAME.
+	  ARM_APPENDED_DTB also enables runtime probing for an appended DTB.
+	  To append a DTB to the barebox image at build time, set
+	  ARM_APPENDED_DTB_NAME to the DTB to use. Leave it empty to build an
+	  image without an appended DTB.
 
 config ARM_APPENDED_DTB_NAME
 	string "DTB to append (relative to arch/arm/dts/)"
 	depends on ARM_APPENDED_DTB
-	default "mt6589-lenovo-b8000-f.dtb"
 	help
 	  Path relative to arch/arm/dts/ of the .dtb to build and append.
+	  Leave empty to disable build-time DTB appending.
 	  Example: mt6589-lenovo-b8000-f.dtb
 
 config BOARD_ARM_GENERIC_DT_AARCH64

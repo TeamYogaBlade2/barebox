@@ -206,18 +206,16 @@ pblb-$(CONFIG_BOARD_GENERIC_DT) += start_dt_2nd
 FILE_barebox-dt-2nd.img = start_dt_2nd.pblb
 image-$(CONFIG_BOARD_GENERIC_DT) += barebox-dt-2nd.img
 
-ifdef CONFIG_ARM_APPENDED_DTB
-# Produce barebox-dt-2nd.img as pblb + DTB (Linux APPENDED_DTB style).
-# Reuse the normal arch/arm/dts DTB build instead of compiling a second
-# copy here. This also preserves the dependency handling for included
-# .dtsi files.
+APPENDED_DTB_NAME := $(strip $(CONFIG_ARM_APPENDED_DTB_NAME))
+
+ifneq ($(APPENDED_DTB_NAME),)
 FILE_barebox-dt-2nd.img = start_dt_2nd-appended.img
 
-APPENDED_DTB = $(objtree)/arch/$(SRCARCH)/dts/$(CONFIG_ARM_APPENDED_DTB_NAME)
+APPENDED_DTB := $(objtree)/arch/$(SRCARCH)/dts/$(APPENDED_DTB_NAME)
 
-quiet_cmd_build_appended_dtb = DTBS    $(CONFIG_ARM_APPENDED_DTB_NAME)
+quiet_cmd_build_appended_dtb = DTBS    $(APPENDED_DTB_NAME)
       cmd_build_appended_dtb = $(MAKE) $(build)=arch/$(SRCARCH)/dts \
-		arch/$(SRCARCH)/dts/$(CONFIG_ARM_APPENDED_DTB_NAME)
+		arch/$(SRCARCH)/dts/$(APPENDED_DTB_NAME)
 
 $(APPENDED_DTB): FORCE
 	$(call if_changed,build_appended_dtb)

@@ -48,13 +48,14 @@ static bool dt_2nd_valid_fdt(const void *fdt)
 }
 
 /*
- * When CONFIG_ARM_APPENDED_DTB is enabled the build appends a DTB to
- * barebox-dt-2nd.img. If the primary bootloader loaded the whole file
- * into memory, the FDT sits right after the linked image (__image_end).
+ * When CONFIG_ARM_APPENDED_DTB is enabled, look for an appended DTB if
+ * the primary bootloader did not pass one in r2. If a DTB was appended
+ * to the image at build time, it sits right after the linked image
+ * (__image_end).
  */
 static void *dt_2nd_find_fdt(void *r2_fdt)
-	{
-		void *appended;
+{
+	void *appended;
 
 	if (dt_2nd_valid_fdt(r2_fdt))
 		return r2_fdt;
