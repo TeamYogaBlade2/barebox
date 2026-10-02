@@ -226,26 +226,6 @@ static struct musb_fifo_cfg mtk_musb_mode_cfg[] = {
 	{ .hw_ep_num = 7, .style = FIFO_RX, .maxpacket = 64, },
 };
 
-/* MT6589 BSP FIFO layout: EP1-4 and EP8 double-buffered, EP5-7 single. */
-static struct musb_fifo_cfg mt6589_musb_mode_cfg[] = {
-	{ .hw_ep_num = 1, .style = FIFO_TX, .maxpacket = 512, .mode = BUF_DOUBLE, },
-	{ .hw_ep_num = 1, .style = FIFO_RX, .maxpacket = 512, .mode = BUF_DOUBLE, },
-	{ .hw_ep_num = 2, .style = FIFO_TX, .maxpacket = 512, .mode = BUF_DOUBLE, },
-	{ .hw_ep_num = 2, .style = FIFO_RX, .maxpacket = 512, .mode = BUF_DOUBLE, },
-	{ .hw_ep_num = 3, .style = FIFO_TX, .maxpacket = 512, .mode = BUF_DOUBLE, },
-	{ .hw_ep_num = 3, .style = FIFO_RX, .maxpacket = 512, .mode = BUF_DOUBLE, },
-	{ .hw_ep_num = 4, .style = FIFO_TX, .maxpacket = 512, .mode = BUF_DOUBLE, },
-	{ .hw_ep_num = 4, .style = FIFO_RX, .maxpacket = 512, .mode = BUF_DOUBLE, },
-	{ .hw_ep_num = 5, .style = FIFO_TX, .maxpacket = 512, },
-	{ .hw_ep_num = 5, .style = FIFO_RX, .maxpacket = 512, },
-	{ .hw_ep_num = 6, .style = FIFO_TX, .maxpacket = 512, },
-	{ .hw_ep_num = 6, .style = FIFO_RX, .maxpacket = 512, },
-	{ .hw_ep_num = 7, .style = FIFO_TX, .maxpacket = 512, },
-	{ .hw_ep_num = 7, .style = FIFO_RX, .maxpacket = 512, },
-	{ .hw_ep_num = 8, .style = FIFO_TX, .maxpacket = 512, .mode = BUF_DOUBLE, },
-	{ .hw_ep_num = 8, .style = FIFO_RX, .maxpacket = 512, .mode = BUF_DOUBLE, },
-};
-
 static struct musb_hdrc_config mtk_musb_hdrc_config = {
 	.fifo_cfg = mtk_musb_mode_cfg,
 	.fifo_cfg_size = ARRAY_SIZE(mtk_musb_mode_cfg),
@@ -255,14 +235,6 @@ static struct musb_hdrc_config mtk_musb_hdrc_config = {
 	.ram_bits = 11,
 };
 
-static struct musb_hdrc_config mt6589_musb_hdrc_config = {
-	.fifo_cfg = mt6589_musb_mode_cfg,
-	.fifo_cfg_size = ARRAY_SIZE(mt6589_musb_mode_cfg),
-	.multipoint = 1,
-	.dyn_fifo = 1,
-	.num_eps = 9,
-	.ram_bits = 12,
-};
 static int get_musb_port_mode(struct device *dev)
 {
 	enum usb_dr_mode mode = usb_get_dr_mode(dev);
@@ -348,10 +320,7 @@ static int mtk_musb_probe(struct device *dev)
 	pdata->platform_ops = &mtk_ops;
 	pdata->mode = get_musb_port_mode(dev);
 
-	if (of_device_is_compatible(dev->of_node, "mediatek,mt6589-musb"))
-		config = &mt6589_musb_hdrc_config;
-	else
-		config = &mtk_musb_hdrc_config;
+	config = &mtk_musb_hdrc_config;
 	pdata->config = config;
 
 	switch (pdata->mode) {
@@ -396,7 +365,6 @@ err:
 }
 
 static const struct of_device_id mtk_musb_ids[] = {
-	{ .compatible = "mediatek,mt6589-musb" },
 	{ .compatible = "mediatek,mtk-musb" },
 	{ /* sentinel */ }
 };
