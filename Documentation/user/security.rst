@@ -56,6 +56,36 @@ fusing for both HABv4 and AHAB.
    touch the subset of fuses relevant to most users. It's up to the integrators
    to fuse away unneeded functionality like USB recovery or JTAG as needed.
 
+Any verified boot setup that doesn't ensure that barebox was correctly signed
+before execution is thus fundamentally flawed. A corollary to this is that
+it's not enough to restrict the ways that barebox can be updated: An attacker
+can often overwrite barebox without its knowledge, via physical access or
+after having booted into the OS. barebox's signature being validated by the
+previous boot stage is thus paramount.
+
+Specifically, the checks :ref:`barebox update <update>` performs on an image,
+e.g. that it targets the right board, exist to reduce the risk of bricking
+the board and can be skipped with ``-f``. They are not a security measure.
+
+Ensuring the barebox devicetree is verified
+-------------------------------------------
+
+Whoever controls the devicetree barebox uses for itself can inject RSA keys
+to be used for FIT verification and control what drivers are probed.
+
+The devicetree must therefore be either:
+
+- verified by the previous boot stage before passing it to barebox
+
+- part of a barebox image and thus verified by the previous boot stage
+
+``barebox-dt-2nd.img`` is bootable like a Linux kernel and takes its
+devicetree from the previous stage. It's thus only suitable for verified
+boot if that stage verified the devicetree as well, e.g. because both are
+part of the same signed FIP image.
+
+.. _loading_firmware:
+
 Loading firmware
 ----------------
 
@@ -69,19 +99,7 @@ Firmware) should happen as early as possible, i.e., within the barebox
 barebox will run with elevated permission, which greatly increases the attack
 surface.
 
-Ensuring the kernel is verified
--------------------------------
-
-barebox can embed one or more RSA or ECDSA public keys that it will use to
-verify signed FIT images. In a verified boot system, barebox should not
-be allowed to boot any images that have not been signed by the correct key.
-This can be enforced by setting ``CONFIG_BOOTM_FORCE_SIGNED_IMAGES=y``
-and disabling any ways that could be used to override this.
-
-For development convenience ``CONFIG_CRYPTO_BUILTIN_DEVELOPMENT_KEYS``
-can be used to compile well known development keys into the barebox binary.
-The private keys for these keys can be found
-`[here] <https://github.com/pengutronix/ptx-code-signing-dev>`__.
+.. _pinning_fit_config:
 
 Pinning the FIT configuration
 -----------------------------
@@ -95,6 +113,107 @@ An attacker can therefore select which of the signed configurations of a FIT is
 booted without altering any image. If that matters, ship only one configuration
 per FIT, or name the configuration explicitly, e.g.
 ``bootm /dev/mmc0.kernel@conf-production``.
+
+Ensuring the kernel is verified
+-------------------------------
+
+barebox can embed one or more RSA or ECDSA public keys that it will use to
+verify signed FIT images. In a verified boot system, barebox should not
+be allowed to boot any images that have not been signed by the correct key.
+This can be enforced by setting ``CONFIG_BOOTM_FORCE_SIGNED_IMAGES=y``
+and disabling any ways that could be used to override this.
+
+How thoroughly an image is checked is controlled by
+:ref:`global.bootm.verify <magicvar_global_bootm_verify>`. Only ``signature``
+is suitable for verified boot. ``hash`` checks the image hashes, but not the
+configuration signature, so it detects corruption, not tampering. The default
+``available`` verifies whatever the image carries and accepts an image
+carrying nothing.
+
+As a global variable, the setting may be changeable at runtime unless barebox
+is built with ``CONFIG_BOOTM_FORCE_SIGNED_IMAGES=y`` or the
+:ref:`security policy <use_security-policies>` denies
+``SCONFIG_BOOT_UNSIGNED_IMAGES``. Either pins it to ``signature``. This
+will also result in :ref:`command_bootm` refusing to boot any non-FIT images.
+
+For development convenience ``CONFIG_CRYPTO_BUILTIN_DEVELOPMENT_KEYS``
+can be enabled after enabling ``CONFIG_INSECURE`` to compile well known
+development keys into the barebox binary.
+The private keys for these keys can be found
+`[here] <https://github.com/pengutronix/ptx-code-signing-dev>`__.
+
+.. _disabling_shell:
+
+Disabling the shell
+^^^^^^^^^^^^^^^^^^^
+
+While useful for development, the barebox shell can be used in creative
+ways to circumvent boot restrictions. It's thus advisable to disable
+the shell completely (``CONFIG_SHELL_NONE=y``) or make it non-interactive
+(``CONFIG_CONSOLE_DISABLE_INPUT=y``). This may be coupled with muxing UART RX
+pin as GPIO for maximum effectiveness.
+
+In addition, there are alternative methods of accessing the shell like
+netconsole, or fastboot. These should preferably be disabled or at least
+not activated by default.
+
+barebox places no restrictions on what the shell does: a command that writes
+a partition, sets a variable or applies a devicetree overlay does exactly
+that. Whoever reaches the shell is as trusted as the boot chain, so any
+remaining way of reaching it is part of the boot chain. A console kept for
+diagnostics should be output-only.
+
+.. _disabling_env:
+
+Disabling the non-builtin environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Anything done interactively by the shell can also be done automatically by
+means of init scripts in the environment. Even without shell support, the
+non-volatile variables in the environment could be used to reconfigure
+barebox in an insecure manner or to influence the command line and device
+tree passed to the kernel on boot.
+
+A secure barebox should thus only consult the environment that it has built
+in and not parse an externally located environment.
+
+This can be enforced by disabling ``CONFIG_ENV_HANDLING``.
+This does not preclude the use of :ref:`Bootchooser` as the
+:ref:`barebox-state framework <state_framework>` can be used independently.
+
+If environment handling is needed for other purposes, denying
+``SCONFIG_ENVIRONMENT_LOAD`` in the
+:ref:`security policy <use_security-policies>` keeps barebox from loading an
+environment from media.
+
+What matters is not the environment itself, but the global variables it sets.
+They select the boot source, end up on the kernel command line and, unless
+signature checking is pinned, decide whether images are verified at all. Any
+way to arbitrarily set global variables, be it a writable environment,
+a script on media or a shell, defeats verified boot regardless of how well
+the images are signed.
+
+.. _avoiding_filesystems:
+
+Avoiding use of file systems
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+File systems are among the most complex parser code in barebox and a common
+source of bugs.
+
+The consequence is that in a verified boot setup, barebox should **never**
+be allowed to mount file systems.
+Especially, :ref:`bootloader spec files <bootloader_spec>` or
+:ref:`extlinux.conf <extlinux_conf>` should not be used
+in verified boot setups and signed FIT images **must** be located outside
+a file system and directly in a raw partition and not pointed at by a plain
+unsigned file on an unsigned file system that can both be tampered with.
+
+If file system use is desired anyway, its integrity should be ensured by
+other means, e.g. by being mounted from a dm-verity block device that was
+setup with a correctly signed root hash.
+
+.. _verity_root_param:
 
 Prevent the kernel from booting the rootfs in verity boots
 ----------------------------------------------------------
@@ -111,48 +230,6 @@ initramfs (e.g. ``verity_root=``) in all bootloader scripts. If the
 ``root=$dev`` is fixed up by barebox dynamically, the
 :ref:`global.bootm.root_param <magicvar_global_bootm_root_param>` variable can
 be used to customize the name of the parameter passed to Linux.
-
-Disabling the shell
-^^^^^^^^^^^^^^^^^^^
-
-While useful for development, the barebox shell can be used in creative
-ways to circumvent boot restrictions. It's thus advisable to disable
-the shell completely (``CONFIG_SHELL_NONE=y``) or make it non-interactive
-(``CONFIG_CONSOLE_DISABLE_INPUT=y``). This may be coupled with muxing UART RX
-pin as GPIO for maximum effectiveness.
-
-In addition, there are alternative methods of accessing the shell like
-netconsole, or fastboot. These should preferably be disabled or at least
-not activated by default.
-
-Disabling mutable environment handling
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Anything done interactively by the shell can also be done automatically by
-means of init scripts in the environment. Even without shell support, the
-non-volatile variables in the environment could be used to reconfigure
-barebox in an insecure manner.
-
-A secure barebox should thus only consult the environment that it has built
-in and not parse an externally located environment.
-
-This can be enforced by disabling ``CONFIG_ENV_HANDLING``.
-This does not preclude the use of :ref:`Bootchooser` as the
-:ref:`barebox-state framework <state_framework>` can be used independently.
-
-Avoiding use of file systems
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-File systems are among the most complex parser code in barebox and a common
-source of bugs.
-Unlike Linux with its dm-verity support, barebox currently has no way to
-verify a file system before mounting it.
-
-The consequence is that in a verified boot setup, barebox should **never**
-be allowed to mount file systems.
-Especially, :ref:`bootloader spec files <bootloader_spec>` should not be used
-in verified boot setups and signed FIT images **must** be located outside
-a file system and directly in a raw partition.
 
 Configuring barebox
 -------------------
@@ -182,6 +259,8 @@ Any code that's eliminated at compile-time is code that can't be exploited by
 an attacker. It's thus strongly advisable to keep a separate secure
 configuration that disables all features that are used for development and
 are not absolutely necessary for booting in the field.
+
+.. _runtime_configuration:
 
 Run-time configuration
 ^^^^^^^^^^^^^^^^^^^^^^
