@@ -45,8 +45,6 @@
 
 #define CLK_APMIXED_LVDSPLL_180M	26
 
-#define CLK_APMIXED_NR_CLK		27
-
 
 /* TOPCKGEN */
 #define CLK_TOP_CLK_NULL	0
@@ -157,7 +155,7 @@
 #define CLK_INFRA_SMI		2
 #define CLK_INFRA_SPI0		3
 #define CLK_INFRA_AUDIO		4
-#define CLK_INFRA_CEC   	5
+#define CLK_INFRA_DEVAPC   	5
 #define CLK_INFRA_MFGAXI	6
 #define CLK_INFRA_M4U		7
 #define CLK_INFRA_MD1MCUAXI	8
@@ -172,7 +170,6 @@
 #define CLK_INFRA_CCIF1		17
 #define CLK_INFRA_PMICSPI	18
 #define CLK_INFRA_PMICWRAP	19
-#define CLK_INFRA_ARMDIV1	20
 
 
 /* PERICFG */
