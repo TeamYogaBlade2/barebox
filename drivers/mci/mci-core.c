@@ -2971,6 +2971,13 @@ static struct device_node *of_mci_get_partition(struct device_node *hwnode,
 		sprintf(partnodename, "partitions-boot%u", index + 1);
 		break;
 	case MMC_BLK_DATA_AREA_MAIN:
+		np = of_get_compatible_child(hwnode, "mmc-card");
+		if (np)
+			return np;
+
+		/* Keep accepting the barebox/legacy layout:
+		 * mmc@.../partitions.
+		 */
 		return hwnode;
 	case MMC_BLK_DATA_AREA_GP:
 		sprintf(partnodename, "partitions-gp%u", index + 1);

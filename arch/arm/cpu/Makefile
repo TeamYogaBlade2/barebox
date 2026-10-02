@@ -9,8 +9,8 @@ obj-pbl-$(CONFIG_MMU) += mmu_$(S64_32).o
 obj-$(CONFIG_MMU) += dma_$(S64_32).o
 obj-pbl-y += lowlevel_$(S64_32).o
 obj-pbl-$(CONFIG_CPU_32v7) += hyp.o
-AFLAGS_hyp.o :=-Wa,-march=armv7-a -Wa,-mcpu=all
-AFLAGS_hyp.pbl.o :=-Wa,-march=armv7-a -Wa,-mcpu=all
+AFLAGS_hyp.o :=$(call as-option,-Wa$(comma)-march=armv7-a) $(call as-option,-Wa$(comma)-mcpu=cortex-a9)
+AFLAGS_hyp.pbl.o :=$(call as-option,-Wa$(comma)-march=armv7-a) $(call as-option,-Wa$(comma)-mcpu=cortex-a9)
 
 obj-y += start.o entry.o entry_ll_$(S64_32).o
 KASAN_SANITIZE_start.o := n
@@ -45,14 +45,14 @@ obj-pbl-$(CONFIG_ARM_SMCCC) += smccc-call_$(S64_32).o
 AFLAGS_smccc-call_$(S64_32).o :=-Wa,-march=armv$(if $(S64),8,7)-a
 AFLAGS_smccc-call_$(S64_32).pbl.o :=-Wa,-march=armv$(if $(S64),8,7)-a
 obj-$(CONFIG_ARM_SECURE_MONITOR) += sm.o sm_as.o
-AFLAGS_sm_as.o		:=-Wa,-march=armv7-a
+AFLAGS_sm_as.o		:=$(call as-option,-Wa$(comma)-march=armv7-a)
 
 obj-pbl-$(CONFIG_CPU_32v4T) += cache-armv4.o
 obj-pbl-$(CONFIG_CPU_32v5) += cache-armv5.o
 obj-pbl-$(CONFIG_CPU_32v6) += cache-armv6.o
 obj-pbl-$(CONFIG_CPU_32v7) += cache-armv7.o
-AFLAGS_cache-armv7.o       :=-Wa,-march=armv7-a
-AFLAGS_cache-armv7.pbl.o   :=-Wa,-march=armv7-a
+AFLAGS_cache-armv7.o       :=$(call as-option,-Wa$(comma)-march=armv7-a)
+AFLAGS_cache-armv7.pbl.o   :=$(call as-option,-Wa$(comma)-march=armv7-a)
 obj-$(CONFIG_CACHE_L2X0) += cache-l2x0.o
 obj-pbl-$(CONFIG_CPU_64v8) += cache-armv8.o
 AFLAGS_cache-armv8.o       :=-Wa,-march=armv8-a

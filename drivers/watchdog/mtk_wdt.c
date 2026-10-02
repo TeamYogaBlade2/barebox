@@ -368,10 +368,13 @@ static int mtk_wdt_probe(struct device *dev)
 	mtk_wdt->wdt_dev.timeout_max = WDT_MAX_TIMEOUT;
 	mtk_wdt->wdt_dev.hwdev = dev;
 
-	if (readl(wdt_base + WDT_MODE) & WDT_MODE_EN)
-		mtk_wdt->wdt_dev.running = WDOG_HW_RUNNING;
-	else
-		mtk_wdt->wdt_dev.running = WDOG_HW_NOT_RUNNING;
+	/*
+	 * MT6589 preloader may leave the AP watchdog running.
+	 * Stop an inherited watchdog before registering the device so
+	 * it cannot expire while barebox is running.
+	 */
+	mtk_wdt->wdt_dev.running = WDOG_HW_NOT_RUNNING;
+	mtk_wdt_stop(&mtk_wdt->wdt_dev);
 
 	err = watchdog_register(&mtk_wdt->wdt_dev);
 	if (err)

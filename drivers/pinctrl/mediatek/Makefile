@@ -3,6 +3,7 @@
 obj-$(CONFIG_PINCTRL_MEDIATEK) += pinctrl-mtk-common-v2.o
 obj-$(CONFIG_PINCTRL_MTK_PARIS) += pinctrl-paris.o
 
+obj-$(CONFIG_PINCTRL_MT6589) += pinctrl-mt6589.o
 obj-$(CONFIG_PINCTRL_MT8183) += pinctrl-mt8183.o
 obj-$(CONFIG_PINCTRL_MT8186) += pinctrl-mt8186.o
 obj-$(CONFIG_PINCTRL_MT8188) += pinctrl-mt8188.o

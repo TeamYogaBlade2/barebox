@@ -18,12 +18,119 @@ static const __be32 *fdt_parse_reg(const __be32 *reg, uint32_t n,
 	return reg;
 }
 
+/*
+ * Find the next /reserved-memory range which either contains @cursor,
+ * or starts after @cursor.
+ *
+ * fdt_find_mem() can only return one contiguous memory range. Therefore
+ * callers use this helper to walk the gaps between reserved regions and
+ * select the largest usable range.
+ */
+static int fdt_find_next_reserved_mem(const void *fdt, int parent,
+				       int na, int ns,
+				       uint64_t mem_base, uint64_t mem_end,
+				       uint64_t cursor,
+				       uint64_t *res_start,
+				       uint64_t *res_end)
+{
+	int child;
+	bool overlapping = false;
+	uint64_t next_start = mem_end;
+	uint64_t next_end = mem_end;
+
+	fdt_for_each_subnode(child, fdt, parent) {
+		const __be32 *reg;
+		const char *status;
+		size_t entry_size;
+		int size, i, entries;
+
+		status = fdt_getprop(fdt, child, "status", &size);
+		if (status &&
+		    strcmp(status, "okay") &&
+		    strcmp(status, "ok"))
+			continue;
+
+		reg = fdt_getprop(fdt, child, "reg", &size);
+		if (!reg)
+			continue;
+
+		if (!na || !ns) {
+			pr_err("Invalid reserved-memory address/size cells\n");
+			return -EINVAL;
+		}
+
+		entry_size = (na + ns) * sizeof(*reg);
+		if (size < entry_size || size % entry_size) {
+			pr_err("Invalid reserved-memory reg property\n");
+			return -EINVAL;
+		}
+
+		entries = size / entry_size;
+		for (i = 0; i < entries; i++) {
+			uint64_t start, length, end;
+
+			reg = fdt_parse_reg(reg, na, &start);
+			reg = fdt_parse_reg(reg, ns, &length);
+
+			if (!length)
+				continue;
+
+			if (start > (uint64_t)-1 - length) {
+				pr_err("Reserved-memory range overflows\n");
+				return -EINVAL;
+			}
+
+			end = start + length;
+
+			if (end <= mem_base || start >= mem_end)
+				continue;
+
+			if (start < mem_base)
+				start = mem_base;
+			if (end > mem_end)
+				end = mem_end;
+
+			/*
+			 * Prefer a reservation which covers @cursor. There may
+			 * be several overlapping reserved regions; skip all of
+			 * them in one step by taking the furthest end.
+			 */
+			if (start <= cursor && cursor < end) {
+				if (!overlapping || end > next_end) {
+					next_start = start;
+					next_end = end;
+				}
+				overlapping = true;
+				continue;
+			}
+
+			/*
+			 * Otherwise remember the nearest reservation after the
+			 * current cursor.
+			 */
+			if (!overlapping && start > cursor && start < next_start)
+				next_start = start;
+		}
+	}
+
+	if (overlapping || next_start < mem_end) {
+		*res_start = next_start;
+		*res_end = overlapping ? next_end : next_start;
+		return 1;
+	}
+
+	return 0;
+}
+
 void fdt_find_mem(const void *fdt, unsigned long *membase, unsigned long *memsize)
 {
 	const __be32 *reg;
+	const __be32 *cells;
 	int na, ns;
 	uint64_t memsize64, membase64;
-	int node, size;
+	uint64_t mem_end, cursor;
+	uint64_t best_base, best_size;
+	int node, reserved, size, ret;
 
 	/* Make sure FDT blob is sane */
 	if (fdt_check_header(fdt) != 0) {
@@ -66,6 +173,89 @@ void fdt_find_mem(const void *fdt, unsigned long *membase, unsigned long *memsiz
 	/* get the memsize and truncate it to under 4G on 32 bit machines */
 	reg = fdt_parse_reg(reg, na, &membase64);
 	reg = fdt_parse_reg(reg, ns, &memsize64);
+
+	if (!memsize64 || membase64 > (uint64_t)-1 - memsize64) {
+		pr_err("Invalid memory range\n");
+		goto err;
+	}
+
+	/*
+	 * /memory describes physical RAM, while /reserved-memory removes
+	 * ranges from the memory available for general-purpose allocation.
+	 *
+	 * fdt_find_mem() historically returned a single base+size range,
+	 * so when reservations split RAM into multiple pieces, use the
+	 * largest remaining contiguous range.
+	 */
+	reserved = fdt_path_offset(fdt, "/reserved-memory");
+	if (reserved >= 0) {
+		int reserved_na, reserved_ns;
+
+		cells = fdt_getprop(fdt, reserved, "#address-cells", &size);
+		if (!cells || size != sizeof(*cells)) {
+			pr_err("Cannot find reserved-memory #address-cells\n");
+			goto err;
+		}
+		reserved_na = fdt32_to_cpu(*cells);
+
+		cells = fdt_getprop(fdt, reserved, "#size-cells", &size);
+		if (!cells || size != sizeof(*cells)) {
+			pr_err("Cannot find reserved-memory #size-cells\n");
+			goto err;
+		}
+		reserved_ns = fdt32_to_cpu(*cells);
+
+		mem_end = membase64 + memsize64;
+		cursor = membase64;
+		best_base = 0;
+		best_size = 0;
+
+		while (cursor < mem_end) {
+			uint64_t res_start, res_end;
+			uint64_t gap_size;
+
+			ret = fdt_find_next_reserved_mem(fdt, reserved,
+							 reserved_na,
+							 reserved_ns,
+							 membase64,
+							 mem_end,
+							 cursor,
+							 &res_start,
+							 &res_end);
+			if (ret < 0)
+				goto err;
+
+			if (!ret) {
+				gap_size = mem_end - cursor;
+				if (gap_size > best_size) {
+					best_base = cursor;
+					best_size = gap_size;
+				}
+				break;
+			}
+
+			if (res_start > cursor) {
+				gap_size = res_start - cursor;
+				if (gap_size > best_size) {
+					best_base = cursor;
+					best_size = gap_size;
+				}
+			}
+
+			if (res_end > cursor)
+				cursor = res_end;
+			else
+				cursor = res_start;
+		}
+
+		if (!best_size) {
+			pr_err("No usable memory outside reserved-memory\n");
+			goto err;
+		}
+
+		membase64 = best_base;
+		memsize64 = best_size;
+	}
 
 	*membase = membase64;
 	*memsize = memsize64;

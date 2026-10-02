@@ -34,6 +34,12 @@ config USB_NOP_XCEIV
 source "drivers/phy/freescale/Kconfig"
 source "drivers/phy/rockchip/Kconfig"
 
+config PHY_MTK_TPHY
+	bool "MediaTek T-PHY"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+	help
+	  Minimal MediaTek T-PHY support for USB2 on MT6589.
+
 config PHY_STM32_USBPHYC
 	tristate "STM32 USB HS PHY Controller"
 	depends on ARCH_STM32MP || COMPILE_TEST

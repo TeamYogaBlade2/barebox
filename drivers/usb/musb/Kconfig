@@ -17,6 +17,14 @@ config USB_MUSB_AM335X
 	  This driver provides the necessary bit to enable USB support
 	  on the TI AM335x SoC.
 
+config USB_MUSB_MEDIATEK
+	bool "MediaTek MUSB support"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+	select GENERIC_PHY
+	select USB_OTGDEV
+	help
+	  Minimal MediaTek MUSB glue for MT6589 secondary bootloader.
+
 config USB_MUSB_HOST
 	bool "MUSB Host mode support"
 	depends on USB_HOST
