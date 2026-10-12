@@ -663,6 +663,14 @@ unsigned long arm_mem_ramoops_get(void);
 
 static void ramoops_register_dummy(void)
 {
+	/*
+	 * When OFTREE is enabled, the ramoops configuration must come from
+	 * the device tree. A dummy platform data instance would otherwise
+	 * prevent ramoops_probe() from parsing the DT properties.
+	 */
+	if (IS_ENABLED(CONFIG_OFTREE))
+		return;
+
 	dummy_data = kzalloc(sizeof(*dummy_data), GFP_KERNEL);
 	if (!dummy_data) {
 		pr_info("could not allocate pdata\n");
