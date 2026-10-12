@@ -129,19 +129,114 @@ static bool prz_ok(struct persistent_ram_zone *prz)
 			   persistent_ram_ecc_string(prz, NULL, 0));
 }
 
+static bool ramoops_is_digit(char c)
+{
+	return c >= '0' && c <= '9';
+}
+
+/*
+ * Linux writes dmesg headers as:
+ *   ====seconds.microseconds-C\n  (raw DEFLATE)
+ *   ====seconds.microseconds-D\n  (uncompressed)
+ *
+ * Also accept legacy headers without the -C/-D suffix. The persistent
+ * RAM buffer is not NUL-terminated, so parse it using an explicit length.
+ */
+static size_t ramoops_read_kmsg_hdr(const char *buffer, size_t size,
+				    bool *compressed)
+{
+	const char *newline, *p, *end, *digits;
+
+	*compressed = false;
+
+	if (size < sizeof(RAMOOPS_KERNMSG_HDR) - 1 ||
+	    memcmp(buffer, RAMOOPS_KERNMSG_HDR,
+		   sizeof(RAMOOPS_KERNMSG_HDR) - 1))
+		return 0;
+
+	/* A timestamp header must fit within this bounded scan. */
+	if (size > 64)
+		size = 64;
+
+	newline = memchr(buffer, '\n', size);
+	if (!newline)
+		return 0;
+
+	p = buffer + sizeof(RAMOOPS_KERNMSG_HDR) - 1;
+	end = newline;
+
+	/* Parse the signed seconds field without converting its value. */
+	if (p < end && (*p == '-' || *p == '+'))
+		p++;
+
+	digits = p;
+	while (p < end && ramoops_is_digit(*p))
+		p++;
+	if (p == digits || p == end || *p++ != '.')
+		return 0;
+
+	/* The microseconds field is an unsigned decimal number. */
+	digits = p;
+	while (p < end && ramoops_is_digit(*p))
+		p++;
+	if (p == digits)
+		return 0;
+
+	if (p < end) {
+		if (*p++ != '-' || end - p != 1)
+			return 0;
+
+		if (*p == 'C')
+			*compressed = true;
+		else if (*p != 'D')
+			return 0;
+		p++;
+	}
+
+	if (p != end)
+		return 0;
+
+	return newline - buffer + 1;
+}
+
 static ssize_t ramoops_pstore_read(struct pstore_record *record)
 {
-	ssize_t size;
+	size_t data_size, total_size, old_size;
 	ssize_t ecc_notice_size;
+	size_t header_length;
 	struct ramoops_context *cxt = record->psi->data;
 	struct persistent_ram_zone *prz;
 
 	record->compressed = false;
+	record->ecc_notice_size = 0;
 
-	prz = ramoops_get_next_prz(cxt->przs, &cxt->dump_read_cnt,
-				   cxt->max_dump_cnt, &record->id,
-				   &record->type,
-				   PSTORE_TYPE_DMESG, 0);
+	prz = NULL;
+	while (cxt->dump_read_cnt < cxt->max_dump_cnt) {
+		struct persistent_ram_zone *next_prz;
+
+		next_prz = ramoops_get_next_prz(cxt->przs,
+						&cxt->dump_read_cnt,
+						cxt->max_dump_cnt,
+						&record->id, &record->type,
+						PSTORE_TYPE_DMESG, 0);
+		if (!prz_ok(next_prz))
+			continue;
+
+		header_length = ramoops_read_kmsg_hdr(
+					persistent_ram_old(next_prz),
+					persistent_ram_old_size(next_prz),
+					&record->compressed);
+		if (!header_length) {
+			record->compressed = false;
+			pr_warn("skipping dmesg record %llu with invalid header\n",
+				record->id);
+			continue;
+		}
+
+		prz = next_prz;
+		break;
+	}
+
 	if (!prz_ok(prz))
 		prz = ramoops_get_next_prz(&cxt->cprz, &cxt->console_read_cnt,
 					   1, &record->id, &record->type,
@@ -161,19 +256,30 @@ static ssize_t ramoops_pstore_read(struct pstore_record *record)
 	if (!persistent_ram_old(prz))
 		return 0;
 
-	size = persistent_ram_old_size(prz);
+	old_size = persistent_ram_old_size(prz);
+	if (header_length > old_size)
+		return -EINVAL;
+
+	data_size = old_size - header_length;
 
 	/* ECC correction notice */
 	ecc_notice_size = persistent_ram_ecc_string(prz, NULL, 0);
+	if (ecc_notice_size < 0 || data_size > INT_MAX ||
+	    ecc_notice_size > INT_MAX - data_size)
+		return -EOVERFLOW;
 
-	record->buf = kmalloc(size + ecc_notice_size + 1, GFP_KERNEL);
+	total_size = data_size + ecc_notice_size;
+	record->buf = kmalloc(total_size + 1, GFP_KERNEL);
 	if (record->buf == NULL)
 		return -ENOMEM;
 
-	memcpy(record->buf, (char *)persistent_ram_old(prz), size);
-	persistent_ram_ecc_string(prz, record->buf + size, ecc_notice_size + 1);
+	memcpy(record->buf,
+	       (char *)persistent_ram_old(prz) + header_length, data_size);
+	persistent_ram_ecc_string(prz, record->buf + data_size,
+				  ecc_notice_size + 1);
+	record->ecc_notice_size = ecc_notice_size;
 
-	return size + ecc_notice_size;
+	return total_size;
 }
 
 static int notrace ramoops_pstore_write_buf(enum pstore_type_id type,
@@ -616,6 +722,8 @@ static int ramoops_probe(struct device *dev)
 
 	cxt->pstore.data = cxt;
 	spin_lock_init(&cxt->pstore.buf_lock);
+	if (cxt->przs && cxt->max_dump_cnt)
+		cxt->pstore.bufsize = cxt->przs[0]->buffer_size;
 
 	err = pstore_register(&cxt->pstore);
 	if (err) {
