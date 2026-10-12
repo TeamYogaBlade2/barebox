@@ -386,6 +386,14 @@ static int persistent_ram_post_init(struct persistent_ram_zone *prz, u32 sig,
 			 prz->buffer->sig);
 	}
 
+#ifdef CONFIG_FS_PSTORE_RAMOOPS_RO
+	/*
+	 * Do not initialize an invalid persistent RAM area in read-only mode.
+	 * Leave it untouched and expose no old log for this zone.
+	 */
+	return 0;
+#endif
+
 	prz->buffer->sig = sig;
 	persistent_ram_zap(prz);
 

@@ -21,6 +21,7 @@
 
 #include <linux/kernel.h>
 #include <linux/err.h>
+#include <linux/errno.h>
 #include <linux/pstore.h>
 #include <linux/time.h>
 #include <linux/ioport.h>
@@ -185,6 +186,9 @@ static int notrace ramoops_pstore_write_buf(enum pstore_type_id type,
 	struct ramoops_context *cxt = psi->data;
 	struct persistent_ram_zone *prz;
 
+	if (IS_ENABLED(CONFIG_FS_PSTORE_RAMOOPS_RO))
+		return -EROFS;
+
 	if (type == PSTORE_TYPE_CONSOLE) {
 		if (!cxt->cprz)
 			return -ENOMEM;
@@ -230,6 +234,9 @@ static int ramoops_pstore_erase(enum pstore_type_id type, u64 id, int count,
 {
 	struct ramoops_context *cxt = psi->data;
 	struct persistent_ram_zone *prz;
+
+	if (IS_ENABLED(CONFIG_FS_PSTORE_RAMOOPS_RO))
+		return -EROFS;
 
 	switch (type) {
 	case PSTORE_TYPE_DMESG:
