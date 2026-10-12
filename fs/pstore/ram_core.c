@@ -342,12 +342,33 @@ void persistent_ram_zap(struct persistent_ram_zone *prz)
 static int persistent_ram_buffer_map(phys_addr_t start, phys_addr_t size,
 		struct persistent_ram_zone *prz, int memtype)
 {
-	prz->res = request_barebox_region(prz->label ?: "ramoops", start, size,
-					  MEMATTRS_RW | MEMATTR_SP);
-	if (!prz->res)
-		return -ENOMEM;
+	unsigned int memattrs = MEMATTRS_RW | MEMATTR_SP;
+	struct resource *res;
+
+	if (!size || start > (phys_addr_t)-1 - (size - 1))
+		return -EINVAL;
+
+	prz->res = request_barebox_region(prz->label ?: "ramoops", start,
+					  size, memattrs);
+	if (!prz->res) {
+		/*
+		 * Some ramoops regions reside in on-chip SRAM rather than
+		 * SDRAM. request_barebox_region() only reserves regions
+		 * within SDRAM banks or the barebox image, so fall back to
+		 * the global I/O memory resource tree.
+		 */
+		res = request_iomem_region(prz->label ?: "ramoops", start,
+					   start + size - 1);
+		if (IS_ERR(res))
+			return PTR_ERR(res);
+
+		res->flags = IORESOURCE_MEM;
+		prz->res = res;
+	}
 
 	prz->res->type = MEMTYPE_PERSISTENT;
+	prz->res->attrs = memattrs;
+	prz->res->flags |= IORESOURCE_TYPE_VALID;
 	prz->res->runtime = true;
 
 	prz->paddr = start;
@@ -385,6 +406,14 @@ static int persistent_ram_post_init(struct persistent_ram_zone *prz, u32 sig,
 		pr_debug("no valid data in buffer (sig = 0x%08x)\n",
 			 prz->buffer->sig);
 	}
+
+#ifdef CONFIG_FS_PSTORE_RAMOOPS_RO
+	/*
+	 * Do not initialize an invalid persistent RAM area in read-only mode.
+	 * Leave it untouched and expose no old log for this zone.
+	 */
+	return 0;
+#endif
 
 	prz->buffer->sig = sig;
 	persistent_ram_zap(prz);

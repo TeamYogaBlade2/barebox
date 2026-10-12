@@ -742,9 +742,17 @@ static dma_addr_t msdc_flush_membuf(const void *ptr, size_t size, enum dma_data_
 	dma_addr_t addr = (dma_addr_t)ptr;
 
 	if (dir == DMA_FROM_DEVICE)
+#ifdef CONFIG_CPU_64
 		v8_inv_dcache_range(addr, addr + size);
+#else
+		v7_dma_inv_range(addr, addr + size);
+#endif
 	else
+#ifdef CONFIG_CPU_64
 		v8_flush_dcache_range(addr, addr + size);
+#else
+		v7_dma_flush_range(addr, addr + size);
+#endif
 
 	return addr;
 }
@@ -835,7 +843,11 @@ static int msdc_dma_transfer(struct msdc_host *host, struct mci_data *data)
 	 * cache-refill during the DMA operations (pre-fetching)
 	 */
 	if (data->flags & MMC_DATA_READ)
+#ifdef CONFIG_CPU_64
 		v8_inv_dcache_range(dma_addr, dma_addr + size);
+#else
+		v7_dma_inv_range(dma_addr, dma_addr + size);
+#endif
 
 	return msdc_dma_done(host, status);
 }
@@ -1822,6 +1834,20 @@ static int msdc_drv_probe(struct device *dev)
 	return mci_register(mci);
 }
 
+static const struct msdc_compatible mt8135_compat = {
+	.clk_div_bits = 8,
+	//.recheck_sdio_irq = true,
+	//.hs400_tune = false,
+	//.pad_tune_reg = MSDC_PAD_TUNE,
+	.pad_tune0 = true,
+	.async_fifo = false,
+	.data_tune = false,
+	.busy_check = false,
+	.stop_clk_fix = false,
+	.enhance_rx = false,
+	//.support_64g = false,
+};
+
 static const struct msdc_compatible mt7620_compat = {
 	.clk_div_bits = 8,
 	.pad_tune0 = false,
@@ -1928,6 +1954,7 @@ static const struct msdc_compatible mt8183_compat = {
 };
 
 static const struct of_device_id msdc_ids[] = {
+	{ .compatible = "mediatek,mt8135-mmc", .data = &mt8135_compat},
 	{ .compatible = "mediatek,mt7620-mmc", .data = &mt7620_compat },
 	{ .compatible = "mediatek,mt7621-mmc", .data = &mt7621_compat },
 	{ .compatible = "mediatek,mt7622-mmc", .data = &mt7622_compat },

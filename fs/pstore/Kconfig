@@ -2,6 +2,7 @@
 
 menuconfig FS_PSTORE
 	select FS_LEGACY
+	select ZLIB
 	bool
 	prompt "pstore fs support"
 	help

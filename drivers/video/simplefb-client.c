@@ -129,6 +129,8 @@ static int simplefb_probe(struct device *dev)
 	info->fbops = &simplefb_ops;
 
 	info->dev.parent = dev;
+	info->dev.of_node = dev->of_node;
+
 	ret = register_framebuffer(info);
 	if (ret < 0) {
 		dev_err(dev, "Unable to register simplefb: %d\n", ret);
@@ -151,7 +153,7 @@ static struct driver simplefb_driver = {
 	.of_compatible = simplefb_of_match,
 	.probe = simplefb_probe,
 };
-device_platform_driver(simplefb_driver);
+console_platform_driver(simplefb_driver);
 
 MODULE_AUTHOR("Stephen Warren <swarren@wwwdotorg.org>");
 MODULE_DESCRIPTION("Simple framebuffer driver");
