@@ -203,7 +203,7 @@ static ssize_t ramoops_pstore_read(struct pstore_record *record)
 {
 	size_t data_size, total_size, old_size;
 	ssize_t ecc_notice_size;
-	size_t header_length;
+	size_t header_length = 0;
 	struct ramoops_context *cxt = record->psi->data;
 	struct persistent_ram_zone *prz;
 
